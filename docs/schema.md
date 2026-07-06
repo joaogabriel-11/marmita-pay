@@ -1,178 +1,305 @@
 # Schema de Dados
+## Sistema de Cardápio e Pedidos — Marmitas
 
-**Status:** Rascunho inicial — será refinado ao escrever o `schema.prisma` real
-**Referência:** `docs/regras-de-negocio.md`, `docs/arquitetura.md`
-
-Este documento descreve o modelo de dados em nível conceitual, antes da sintaxe final do Prisma. Serve como referência rápida sem precisar abrir o `schema.prisma` inteiro.
+**Status:** Rascunho validado para transformar em `schema.prisma`  
+**Referência:** `docs/regras-de-negocio.md`, `docs/arquitetura.md`  
+**Última atualização:** 06/07/2026
 
 ---
 
 ## 1. Visão Geral das Entidades
 
-```
-User ──< Endereco
-User ──< Pedido >── ItemPedido >── CardapioDia >── Prato
+```txt
+Admin
+
+Categoria ──< Prato ──< CardapioDia
+Pedido ──< ItemPedido >── CardapioDia
 Pedido ──1:1── Pagamento
 Pedido >── ZonaEntrega
-ConfiguracaoRestaurante (tabela única, singleton)
+ConfiguracaoRestaurante (singleton)
 ```
+
+### Decisão do MVP
+
+Cliente não tem conta nem login.
+
+Os dados do cliente ficam embutidos diretamente no `Pedido`:
+
+- nome;
+- telefone;
+- email opcional;
+- endereço, se for entrega.
+
+Se futuramente existir área do cliente com histórico, esses campos poderão ser extraídos para uma tabela `Cliente`.
 
 ---
 
 ## 2. Entidades Detalhadas
 
-### `User`
+## `Admin`
 
-Representa clientes e administradores.
+Único perfil autenticado no sistema no MVP.
 
-| Campo       | Tipo                    | Observação        |
-| ----------- | ----------------------- | ----------------- |
-| `id`        | String (cuid)           | PK                |
-| `nome`      | String                  |                   |
-| `email`     | String                  | Único             |
-| `role`      | Enum `CLIENTE`, `ADMIN` | Default `CLIENTE` |
-| `createdAt` | DateTime                |                   |
+| Campo | Tipo | Observação |
+|---|---|---|
+| `id` | String | PK — `cuid()` |
+| `nome` | String | Nome do administrador |
+| `email` | String | Único — usado no login |
+| `createdAt` | DateTime | Data de criação |
+| `updatedAt` | DateTime | Data de atualização |
 
-Relação: `1:N` com `Endereco`, `1:N` com `Pedido`.
-
----
-
-### `Endereco`
-
-Endereços salvos do cliente (pode ter mais de um).
-
-| Campo                                    | Tipo    | Observação                                    |
-| ---------------------------------------- | ------- | --------------------------------------------- |
-| `id`                                     | String  | PK                                            |
-| `userId`                                 | String  | FK → `User`                                   |
-| `rua`, `numero`, `bairro`, `complemento` | String  |                                               |
-| `zonaEntregaId`                          | String? | FK → `ZonaEntrega` — usado para calcular taxa |
+Não há enum `Role` no MVP. Se existe registro em `Admin`, a pessoa é administradora.
 
 ---
 
-### `ZonaEntrega`
+## `ConfiguracaoRestaurante`
 
-Cadastrada pelo admin. Define taxa fixa por região.
+Tabela singleton com uma única linha de configuração geral.
 
-| Campo         | Tipo    | Observação                                  |
-| ------------- | ------- | ------------------------------------------- |
-| `id`          | String  | PK                                          |
-| `nome`        | String  | Ex: "Centro", "Zona Norte"                  |
-| `taxaEntrega` | Decimal |                                             |
-| `ativo`       | Boolean | Permite desativar zona sem apagar histórico |
-
----
-
-### `Prato`
-
-Catálogo de pratos que **podem** aparecer no cardápio (não é o cardápio do dia em si).
-
-| Campo       | Tipo    | Observação                                             |
-| ----------- | ------- | ------------------------------------------------------ |
-| `id`        | String  | PK                                                     |
-| `nome`      | String  |                                                        |
-| `descricao` | String  |                                                        |
-| `fotoUrl`   | String? |                                                        |
-| `categoria` | String  | Ex: "Prato principal", "Bebida", "Sobremesa"           |
-| `precoBase` | Decimal | Preço sugerido — pode ser sobrescrito no `CardapioDia` |
-| `ativo`     | Boolean | Soft delete                                            |
+| Campo | Tipo | Observação |
+|---|---|---|
+| `id` | String | PK fixo, ex: `default` |
+| `nomeRestaurante` | String | Nome exibido no cardápio |
+| `modoEntrega` | Enum `ModoEntrega` | `DELIVERY`, `RETIRADA`, `AMBOS` |
+| `horarioCorte` | String | Formato `HH:mm`, interpretado em `America/Sao_Paulo` |
+| `pedidosAtivos` | Boolean | Loja aberta/fechada manualmente |
+| `motivoFechamento` | String? | Exibido quando `pedidosAtivos = false` |
+| `taxaEntregaPadrao` | Decimal? | Usada se não houver zona específica |
+| `pedidoMinimo` | Decimal? | Valor mínimo para checkout |
+| `tempoPreparoMinutos` | Int? | Estimativa para retirada |
+| `tempoEntregaMinutos` | Int? | Estimativa para entrega |
+| `whatsappContato` | String? | Contato exibido no checkout/rodapé |
+| `createdAt` | DateTime | Data de criação |
+| `updatedAt` | DateTime | Data de atualização |
 
 ---
 
-### `CardapioDia`
+## `ZonaEntrega`
 
-Define o que está disponível para venda em uma data específica, com quantidade limitada. **Esta é a entidade central do sistema.**
+Define taxa fixa por bairro/região.
 
-| Campo                  | Tipo     | Observação                                              |
-| ---------------------- | -------- | ------------------------------------------------------- |
-| `id`                   | String   | PK                                                      |
-| `pratoId`              | String   | FK → `Prato`                                            |
-| `data`                 | Date     | Data de venda/entrega                                   |
-| `precoDoDia`           | Decimal  | Preço praticado nesse dia (pode diferir do `precoBase`) |
-| `quantidadeDisponivel` | Int      | Quantidade total produzida                              |
-| `quantidadeVendida`    | Int      | Incrementado apenas na confirmação de pagamento         |
-| `createdAt`            | DateTime |                                                         |
+| Campo | Tipo | Observação |
+|---|---|---|
+| `id` | String | PK — `cuid()` |
+| `nome` | String | Ex: `Centro`, `Zona Norte` |
+| `taxaEntrega` | Decimal | Taxa fixa da zona |
+| `ativo` | Boolean | Permite desativar sem apagar histórico |
+| `createdAt` | DateTime | Data de criação |
+| `updatedAt` | DateTime | Data de atualização |
 
-**Constraint:** único por (`pratoId`, `data`) — não pode haver o mesmo prato duplicado no mesmo dia.
+Relação:
 
-**Regra crítica:** `quantidadeVendida` nunca pode ultrapassar `quantidadeDisponivel`. Essa verificação ocorre dentro da transação de confirmação de pagamento (ver `arquitetura.md`, seção 4), não a nível de constraint de banco, porque a decisão de "esgotado" depende de lógica de negócio (ex: admin pode aumentar a quantidade manualmente depois).
-
----
-
-### `Pedido`
-
-Representa um pedido completo do cliente.
-
-| Campo                   | Tipo                        | Observação                                                                                                   |
-| ----------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `id`                    | String                      | PK                                                                                                           |
-| `userId`                | String                      | FK → `User`                                                                                                  |
-| `status`                | Enum                        | `AGUARDANDO_PAGAMENTO`, `CONFIRMADO`, `EM_PREPARO`, `SAIU_PARA_ENTREGA`, `ENTREGUE`, `RETIRADO`, `CANCELADO` |
-| `tipoEntrega`           | Enum `DELIVERY`, `RETIRADA` | Definido no checkout (respeitando `ConfiguracaoRestaurante.modoEntrega`)                                     |
-| `enderecoId`            | String?                     | FK → `Endereco` — nulo se for retirada                                                                       |
-| `zonaEntregaId`         | String?                     | FK → `ZonaEntrega` — nulo se for retirada                                                                    |
-| `taxaEntrega`           | Decimal                     | Congelada no momento do pedido                                                                               |
-| `valorTotal`            | Decimal                     | Soma dos itens + taxa, congelado                                                                             |
-| `dataEntregaOuRetirada` | Date                        | Sempre a data corrente (não há pedido futuro nesta versão)                                                   |
-| `criadoEm`              | DateTime                    |                                                                                                              |
-| `expiraEm`              | DateTime                    | `criadoEm + 15min` — usado pelo job de expiração                                                             |
+```txt
+ZonaEntrega 1:N Pedido
+```
 
 ---
 
-### `ItemPedido`
+## `Categoria`
+
+Categorias de exibição do cardápio.
+
+Exemplos:
+
+- Marmitas;
+- Bebidas;
+- Sobremesas;
+- Adicionais.
+
+| Campo | Tipo | Observação |
+|---|---|---|
+| `id` | String | PK — `cuid()` |
+| `nome` | String | Nome exibido ao cliente |
+| `ordem` | Int | Ordem de exibição no cardápio |
+| `ativo` | Boolean | Soft delete |
+| `createdAt` | DateTime | Data de criação |
+| `updatedAt` | DateTime | Data de atualização |
+
+Relação:
+
+```txt
+Categoria 1:N Prato
+```
+
+Decisão: categorias vêm com seed inicial, mas podem ser criadas/editadas/desativadas pelo admin.
+
+---
+
+## `Prato`
+
+Catálogo base de pratos/produtos que podem aparecer no cardápio do dia.
+
+| Campo | Tipo | Observação |
+|---|---|---|
+| `id` | String | PK — `cuid()` |
+| `nome` | String | Nome do prato |
+| `descricao` | String | Descrição do prato |
+| `fotoUrl` | String? | URL da imagem |
+| `categoriaId` | String | FK → `Categoria` |
+| `precoBase` | Decimal | Preço sugerido |
+| `ativo` | Boolean | Soft delete |
+| `createdAt` | DateTime | Data de criação |
+| `updatedAt` | DateTime | Data de atualização |
+
+Relação:
+
+```txt
+Prato N:1 Categoria
+Prato 1:N CardapioDia
+```
+
+---
+
+## `CardapioDia`
+
+Define o que está disponível para venda em uma data específica.
+
+É a entidade central do sistema.
+
+| Campo | Tipo | Observação |
+|---|---|---|
+| `id` | String | PK — `cuid()` |
+| `pratoId` | String | FK → `Prato` |
+| `data` | Date | Data de venda/entrega |
+| `precoDoDia` | Decimal | Preço praticado no dia |
+| `quantidadeDisponivel` | Int | Total produzido/disponível |
+| `quantidadeVendida` | Int | Incrementado após pagamento aprovado |
+| `ativo` | Boolean | Admin pode ocultar sem apagar histórico |
+| `destaque` | Boolean | Define destaque na listagem |
+| `ordem` | Int? | Ordem opcional dentro do cardápio |
+| `createdAt` | DateTime | Data de criação |
+| `updatedAt` | DateTime | Data de atualização |
+
+### Constraint
+
+Único por:
+
+```txt
+(pratoId, data)
+```
+
+Não pode haver o mesmo prato duplicado no mesmo dia.
+
+### Disponibilidade real
+
+```txt
+disponivelReal = quantidadeDisponivel - quantidadeVendida - quantidadeReservada
+```
+
+`quantidadeReservada` não é coluna própria.
+
+Ela é calculada somando `ItemPedido.quantidade` de pedidos:
+
+```txt
+Pedido.status = AGUARDANDO_PAGAMENTO
+Pedido.expiraEm > now
+```
+
+Isso evita dessincronia e libera automaticamente a reserva quando o pedido expira.
+
+---
+
+## `Pedido`
+
+Representa um pedido completo feito pelo cliente.
+
+| Campo | Tipo | Observação |
+|---|---|---|
+| `id` | String | PK — `cuid()` |
+| `codigoPedido` | Int | Código amigável para cliente/admin, ex: `1024` |
+| `clienteNome` | String | Nome informado no checkout |
+| `clienteTelefone` | String | Telefone/WhatsApp |
+| `clienteEmail` | String? | Opcional para notificações |
+| `status` | Enum `StatusPedido` | Estado atual do pedido |
+| `tipoEntrega` | Enum `TipoEntregaPedido` | `DELIVERY` ou `RETIRADA` |
+| `enderecoRua` | String? | Nulo se retirada |
+| `enderecoNumero` | String? | Nulo se retirada |
+| `enderecoBairro` | String? | Nulo se retirada |
+| `enderecoComplemento` | String? | Opcional |
+| `zonaEntregaId` | String? | FK → `ZonaEntrega`, nulo se retirada |
+| `taxaEntrega` | Decimal | Congelada no momento do pedido |
+| `valorTotal` | Decimal | Soma dos itens + taxa, congelado |
+| `dataEntregaOuRetirada` | Date | Sempre data corrente no MVP |
+| `expiraEm` | DateTime | `criadoEm + 15min` |
+| `canceladoEm` | DateTime? | Preenchido se status virar `CANCELADO` |
+| `motivoCancelamento` | String? | Motivo informado pelo cliente/admin |
+| `createdAt` | DateTime | Data de criação |
+| `updatedAt` | DateTime | Data de atualização |
+
+Relações:
+
+```txt
+Pedido 1:N ItemPedido
+Pedido 1:1 Pagamento
+Pedido N:1 ZonaEntrega
+```
+
+Não existe `userId` nem `enderecoId` no MVP, porque cliente não possui conta nem entidade própria.
+
+---
+
+## `ItemPedido`
 
 Itens que compõem um pedido.
 
-| Campo           | Tipo    | Observação                                                          |
-| --------------- | ------- | ------------------------------------------------------------------- |
-| `id`            | String  | PK                                                                  |
-| `pedidoId`      | String  | FK → `Pedido`                                                       |
-| `cardapioDiaId` | String  | FK → `CardapioDia`                                                  |
-| `quantidade`    | Int     |                                                                     |
-| `precoUnitario` | Decimal | Congelado no momento da criação (cópia de `CardapioDia.precoDoDia`) |
-| `observacoes`   | String? | Ex: "sem cebola"                                                    |
+| Campo | Tipo | Observação |
+|---|---|---|
+| `id` | String | PK — `cuid()` |
+| `pedidoId` | String | FK → `Pedido` |
+| `cardapioDiaId` | String | FK → `CardapioDia` |
+| `quantidade` | Int | Quantidade comprada |
+| `precoUnitario` | Decimal | Congelado no momento do pedido |
+| `observacoes` | String? | Ex: `sem cebola` |
+| `createdAt` | DateTime | Data de criação |
+| `updatedAt` | DateTime | Data de atualização |
+
+Relações:
+
+```txt
+ItemPedido N:1 Pedido
+ItemPedido N:1 CardapioDia
+```
 
 ---
 
-### `Pagamento`
+## `Pagamento`
 
 Registro da transação financeira, 1:1 com `Pedido`.
 
-| Campo                  | Tipo                                                 | Observação                               |
-| ---------------------- | ---------------------------------------------------- | ---------------------------------------- |
-| `id`                   | String                                               | PK                                       |
-| `pedidoId`             | String                                               | FK único → `Pedido`                      |
-| `metodo`               | Enum `PIX`, `CARTAO`                                 |                                          |
-| `status`               | Enum `PENDENTE`, `APROVADO`, `RECUSADO`, `ESTORNADO` |                                          |
-| `gatewayTransactionId` | String                                               | Único — chave de idempotência do webhook |
-| `valorPago`            | Decimal                                              |                                          |
-| `confirmadoEm`         | DateTime?                                            | Preenchido quando o webhook confirma     |
+| Campo | Tipo | Observação |
+|---|---|---|
+| `id` | String | PK — `cuid()` |
+| `pedidoId` | String | FK único → `Pedido` |
+| `metodo` | Enum `MetodoPagamento` | No MVP usa apenas `PIX` |
+| `status` | Enum `StatusPagamento` | Estado do pagamento |
+| `gateway` | String | Ex: `mercadopago` |
+| `gatewayPaymentId` | String? | ID do pagamento no Mercado Pago, único quando preenchido |
+| `externalReference` | String | Igual ao `pedidoId`, enviado ao gateway |
+| `qrCode` | String? | Pix copia-e-cola |
+| `qrCodeBase64` | String? | Imagem do QR Code em base64 |
+| `valorEsperado` | Decimal | Valor do pedido no momento da cobrança |
+| `valorPago` | Decimal? | Valor confirmado pelo gateway |
+| `confirmadoEm` | DateTime? | Preenchido quando aprovado |
+| `createdAt` | DateTime | Data de criação |
+| `updatedAt` | DateTime | Data de atualização |
 
----
+### Segurança
 
-### `ConfiguracaoRestaurante`
+O webhook não deve confiar apenas no payload recebido.
 
-Tabela singleton (uma única linha) com as configurações gerais.
+Após validar a assinatura, o sistema consulta a API do Mercado Pago usando `gatewayPaymentId` e confirma:
 
-| Campo              | Tipo                                 | Observação                                      |
-| ------------------ | ------------------------------------ | ----------------------------------------------- |
-| `id`               | String                               | PK fixo (sempre o mesmo valor, ex: `"default"`) |
-| `modoEntrega`      | Enum `DELIVERY`, `RETIRADA`, `AMBOS` |                                                 |
-| `horarioCorte`     | String (HH:mm)                       | Ex: `"10:00"`                                   |
-| `aceitaPedidoHoje` | Boolean                              | Override manual do admin                        |
-| `pedidoMinimo`     | Decimal?                             |                                                 |
-| `whatsappContato`  | String?                              |                                                 |
+- status aprovado;
+- valor pago;
+- `externalReference`;
+- pedido correspondente;
+- idempotência.
 
 ---
 
 ## 3. Enums Consolidados
 
 ```prisma
-enum Role {
-  CLIENTE
-  ADMIN
-}
-
 enum ModoEntrega {
   DELIVERY
   RETIRADA
@@ -186,17 +313,19 @@ enum TipoEntregaPedido {
 
 enum StatusPedido {
   AGUARDANDO_PAGAMENTO
+  EXPIRADO
+  CANCELADO
   CONFIRMADO
   EM_PREPARO
+  PRONTO_PARA_RETIRADA
   SAIU_PARA_ENTREGA
   ENTREGUE
   RETIRADO
-  CANCELADO
 }
 
 enum MetodoPagamento {
   PIX
-  CARTAO
+  CARTAO // reservado para fase 2, não usado no MVP
 }
 
 enum StatusPagamento {
@@ -209,16 +338,104 @@ enum StatusPagamento {
 
 ---
 
-## 4. Índices Importantes (performance)
+## 4. Índices Importantes
 
-- `CardapioDia`: índice em `data` (consulta diária constante).
-- `Pedido`: índice em `userId` (histórico do cliente) e em `status` (painel admin filtra por status).
-- `Pagamento`: índice único em `gatewayTransactionId` (idempotência do webhook).
+### `Admin`
+
+```txt
+email unique
+```
+
+### `Categoria`
+
+```txt
+ativo
+ordem
+```
+
+### `Prato`
+
+```txt
+categoriaId
+ativo
+```
+
+### `CardapioDia`
+
+```txt
+data
+ativo
+(pratoId, data) unique
+```
+
+### `Pedido`
+
+```txt
+codigoPedido unique
+status
+expiraEm
+createdAt
+tipoEntrega
+zonaEntregaId
+```
+
+### `ItemPedido`
+
+```txt
+pedidoId
+cardapioDiaId
+```
+
+### `Pagamento`
+
+```txt
+pedidoId unique
+gatewayPaymentId unique
+externalReference
+status
+```
 
 ---
 
-## 5. Pontos em Aberto
+## 5. Regras Importantes para o Prisma
 
-- [ ] Confirmar se `ConfiguracaoRestaurante` singleton é suficiente ou se algum campo deveria ser versionado por data (ex: histórico de mudança de horário de corte)
-- [ ] Definir se `Prato.categoria` vira uma tabela `Categoria` separada (melhor para filtros no futuro) ou permanece como string simples no MVP
-- [ ] Confirmar geração de `id`: `cuid()` (padrão Prisma) é suficiente, não há necessidade de UUID
+### Decimal
+
+Valores monetários devem usar `Decimal`, não `Float`.
+
+### Datas
+
+- Timestamps (`createdAt`, `updatedAt`, `expiraEm`, `confirmadoEm`) ficam em UTC.
+- `horarioCorte` fica como string `HH:mm` e é interpretado em `America/Sao_Paulo` pela camada de service.
+
+### IDs
+
+Uso padrão:
+
+```txt
+cuid()
+```
+
+Não há necessidade de UUID no MVP.
+
+### Código do pedido
+
+`codigoPedido` deve ser amigável e incremental.
+
+Pode ser implementado com sequência no banco, contador auxiliar ou lógica segura no service. O importante é não expor o `cuid()` para o cliente como identificador principal.
+
+---
+
+## 6. Pontos de Refatoração Futura
+
+Se o projeto evoluir, considerar:
+
+- tabela `Cliente` para histórico e login;
+- tabela `Endereco` vinculada ao cliente;
+- tabela `Funcionario` ou `User` com roles;
+- suporte multi-restaurante com `restaurantId` em todas as entidades principais;
+- tabela de assinatura/plano;
+- tabela de cupom;
+- versionamento de configurações por dia;
+- painel separado de cozinha/operação;
+- pagamento via cartão.

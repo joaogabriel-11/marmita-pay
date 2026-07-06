@@ -1,4 +1,5 @@
 # Documento de Regras de Negócio
+
 ## Sistema de Cardápio e Pedidos — Marmitas
 
 **Versão:** 1.0
@@ -17,11 +18,11 @@ Sistema de pedidos de marmitas para um restaurante, com cardápio diário defini
 
 ## 2. Perfis de Usuário
 
-| Perfil | Descrição | Acesso |
-|---|---|---|
-| **Cliente** | Faz pedidos, acompanha status, histórico | Área logada `/cliente` |
-| **Admin** | Dono do restaurante — configura cardápio, entrega, vê relatórios | Área logada `/admin` |
-| **Cozinha/Operação** (opcional, fase 2) | Atualiza status de preparo/entrega | Painel simplificado, só mudança de status |
+| Perfil                                  | Descrição                                                        | Acesso                                    |
+| --------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------- |
+| **Cliente**                             | Faz pedidos, acompanha status, histórico                         | Área logada `/cliente`                    |
+| **Admin**                               | Dono do restaurante — configura cardápio, entrega, vê relatórios | Área logada `/admin`                      |
+| **Cozinha/Operação** (opcional, fase 2) | Atualiza status de preparo/entrega                               | Painel simplificado, só mudança de status |
 
 - Cliente pode navegar o cardápio **sem login**, mas precisa se autenticar para finalizar o pedido (reduz fricção, mas garante rastreabilidade).
 - Login social (Google) via NextAuth como opção principal.
@@ -32,14 +33,14 @@ Sistema de pedidos de marmitas para um restaurante, com cardápio diário defini
 
 Entidade única de configuração (`ConfiguracaoRestaurante`), editável pelo admin, contendo:
 
-| Campo | Descrição | Exemplo |
-|---|---|---|
-| `modo_entrega` | Enum: `DELIVERY`, `RETIRADA`, `AMBOS` | `AMBOS` |
-| `horario_corte` | Horário limite (HH:mm) para pedidos do dia | `10:00` |
-| `aceita_pedido_hoje` | Flag manual para o admin fechar pedidos do dia mesmo antes do corte (ex: acabou insumo) | `true/false` |
-| `taxa_entrega_padrao` | Usada se não houver zona específica | `R$ 5,00` |
-| `pedido_minimo` | Valor mínimo para checkout (opcional) | `R$ 15,00` |
-| `whatsapp_contato` | Para exibir no rodapé/checkout | — |
+| Campo                 | Descrição                                                                               | Exemplo      |
+| --------------------- | --------------------------------------------------------------------------------------- | ------------ |
+| `modo_entrega`        | Enum: `DELIVERY`, `RETIRADA`, `AMBOS`                                                   | `AMBOS`      |
+| `horario_corte`       | Horário limite (HH:mm) para pedidos do dia                                              | `10:00`      |
+| `aceita_pedido_hoje`  | Flag manual para o admin fechar pedidos do dia mesmo antes do corte (ex: acabou insumo) | `true/false` |
+| `taxa_entrega_padrao` | Usada se não houver zona específica                                                     | `R$ 5,00`    |
+| `pedido_minimo`       | Valor mínimo para checkout (opcional)                                                   | `R$ 15,00`   |
+| `whatsapp_contato`    | Para exibir no rodapé/checkout                                                          | —            |
 
 **Regra central de corte:** pedidos para entrega/retirada **no mesmo dia** só são aceitos até `horario_corte`. Após esse horário, o cardápio do dia fica indisponível para novos pedidos — a tela deve comunicar isso claramente ("Pedidos encerrados por hoje, volte amanhã às 00:00" ou horário que o cardápio reabre).
 
@@ -73,7 +74,8 @@ Entidade única de configuração (`ConfiguracaoRestaurante`), editável pelo ad
 AGUARDANDO_PAGAMENTO → CONFIRMADO → EM_PREPARO → SAIU_PARA_ENTREGA* → ENTREGUE
                      ↘ CANCELADO                                    ↘ (RETIRADO, se for retirada)
 ```
-*`SAIU_PARA_ENTREGA` só existe se o pedido for do tipo entrega.
+
+\*`SAIU_PARA_ENTREGA` só existe se o pedido for do tipo entrega.
 
 - Cancelamento pelo cliente só é permitido enquanto o status for `AGUARDANDO_PAGAMENTO` ou `CONFIRMADO` (antes de entrar em preparo). Depois disso, cancelamento só via admin.
 
@@ -103,11 +105,11 @@ AGUARDANDO_PAGAMENTO → CONFIRMADO → EM_PREPARO → SAIU_PARA_ENTREGA* → EN
 
 ## 8. Regras de Notificação
 
-| Evento | Canal |
-|---|---|
-| Pedido confirmado (pagamento aprovado) | Email (Resend) |
-| Pedido saiu para entrega | Email (fase 2: WhatsApp) |
-| Pedido cancelado | Email |
+| Evento                                 | Canal                    |
+| -------------------------------------- | ------------------------ |
+| Pedido confirmado (pagamento aprovado) | Email (Resend)           |
+| Pedido saiu para entrega               | Email (fase 2: WhatsApp) |
+| Pedido cancelado                       | Email                    |
 
 ---
 
