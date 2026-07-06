@@ -5,3 +5,297 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// =======================
+// ENUMS
+// =======================
+
+enum ModoEntrega {
+  DELIVERY
+  RETIRADA
+  AMBOS
+}
+
+enum TipoEntregaPedido {
+  DELIVERY
+  RETIRADA
+}
+
+enum StatusPedido {
+  AGUARDANDO_PAGAMENTO
+  EXPIRADO
+  CANCELADO
+  CONFIRMADO
+  EM_PREPARO
+  PRONTO_PARA_RETIRADA
+  SAIU_PARA_ENTREGA
+  ENTREGUE
+  RETIRADO
+}
+
+enum MetodoPagamento {
+  PIX
+  CARTAO
+}
+
+enum StatusPagamento {
+  PENDENTE
+  APROVADO
+  RECUSADO
+  ESTORNADO
+}
+
+// =======================
+// ADMIN
+// =======================
+
+model Admin {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admins")
+}
+
+// =======================
+// CONFIGURAÇÃO DO RESTAURANTE
+// Tabela singleton: apenas uma linha
+// =======================
+
+model ConfiguracaoRestaurante {
+  id String @id @default("default")
+
+  modoEntrega      ModoEntrega @default(AMBOS)
+  horarioCorte     String // Ex: "10:00", interpretado em America/Sao_Paulo
+  pedidosAtivos    Boolean     @default(true)
+  motivoFechamento String?
+
+  pedidoMinimo      Decimal? @db.Decimal(10, 2)
+  taxaEntregaPadrao Decimal? @db.Decimal(10, 2)
+
+  tempoPreparoMinutos Int?
+  tempoEntregaMinutos Int?
+
+  whatsappContato String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("configuracao_restaurante")
+}
+
+// =======================
+// CATEGORIAS
+// Ex: Marmitas, Bebidas, Sobremesas, Adicionais
+// =======================
+
+model Categoria {
+  id    String  @id @default(cuid())
+  nome  String
+  ordem Int     @default(0)
+  ativo Boolean @default(true)
+
+  pratos Prato[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ativo])
+  @@index([ordem])
+  @@map("categorias")
+}
+
+// =======================
+// PRATOS
+// Catálogo base de produtos
+// =======================
+
+model Prato {
+  id        String  @id @default(cuid())
+  nome      String
+  descricao String
+  fotoUrl   String?
+  precoBase Decimal @db.Decimal(10, 2)
+  ativo     Boolean @default(true)
+
+  categoriaId String
+  categoria   Categoria @relation(fields: [categoriaId], references: [id])
+
+  cardapios CardapioDia[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoriaId])
+  @@index([ativo])
+  @@map("pratos")
+}
+
+// =======================
+// CARDÁPIO DO DIA
+// Define o que será vendido em uma data específica
+// =======================
+
+model CardapioDia {
+  id String @id @default(cuid())
+
+  pratoId String
+  prato   Prato  @relation(fields: [pratoId], references: [id])
+
+  data DateTime @db.Date
+
+  precoDoDia           Decimal @db.Decimal(10, 2)
+  quantidadeDisponivel Int
+  quantidadeVendida    Int     @default(0)
+
+  ativo    Boolean @default(true)
+  destaque Boolean @default(false)
+  ordem    Int     @default(0)
+
+  itensPedido ItemPedido[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([pratoId, data])
+  @@index([data])
+  @@index([ativo])
+  @@index([destaque])
+  @@map("cardapios_dia")
+}
+
+// =======================
+// ZONAS DE ENTREGA
+// Ex: Centro, Zona Norte, Bairro X
+// =======================
+
+model ZonaEntrega {
+  id          String  @id @default(cuid())
+  nome        String
+  taxaEntrega Decimal @db.Decimal(10, 2)
+  ativo       Boolean @default(true)
+
+  pedidos Pedido[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ativo])
+  @@map("zonas_entrega")
+}
+
+// =======================
+// PEDIDOS
+// Cliente não tem login no MVP.
+// Dados do cliente ficam embutidos no pedido.
+// =======================
+
+model Pedido {
+  id           String @id @default(cuid())
+  codigoPedido Int    @unique @default(autoincrement())
+
+  // Dados do cliente
+  clienteNome     String
+  clienteTelefone String
+  clienteEmail    String?
+
+  // Entrega ou retirada
+  tipoEntrega TipoEntregaPedido
+
+  enderecoRua         String?
+  enderecoNumero      String?
+  enderecoBairro      String?
+  enderecoComplemento String?
+
+  zonaEntregaId String?
+  zonaEntrega   ZonaEntrega? @relation(fields: [zonaEntregaId], references: [id])
+
+  taxaEntrega Decimal @default(0) @db.Decimal(10, 2)
+  valorTotal  Decimal @db.Decimal(10, 2)
+
+  status StatusPedido @default(AGUARDANDO_PAGAMENTO)
+
+  dataEntregaOuRetirada DateTime @db.Date
+
+  expiraEm DateTime
+
+  canceladoEm        DateTime?
+  motivoCancelamento String?
+
+  itens     ItemPedido[]
+  pagamento Pagamento?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([expiraEm])
+  @@index([clienteTelefone])
+  @@index([dataEntregaOuRetirada])
+  @@map("pedidos")
+}
+
+// =======================
+// ITENS DO PEDIDO
+// Preço congelado no momento do pedido
+// =======================
+
+model ItemPedido {
+  id String @id @default(cuid())
+
+  pedidoId String
+  pedido   Pedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+
+  cardapioDiaId String
+  cardapioDia   CardapioDia @relation(fields: [cardapioDiaId], references: [id])
+
+  quantidade    Int
+  precoUnitario Decimal @db.Decimal(10, 2)
+  observacoes   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pedidoId])
+  @@index([cardapioDiaId])
+  @@map("itens_pedido")
+}
+
+// =======================
+// PAGAMENTO
+// 1 pedido possui 1 pagamento
+// =======================
+
+model Pagamento {
+  id String @id @default(cuid())
+
+  pedidoId String @unique
+  pedido   Pedido @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+
+  metodo MetodoPagamento @default(PIX)
+  status StatusPagamento @default(PENDENTE)
+
+  gateway String @default("mercadopago")
+
+  gatewayPaymentId  String? @unique
+  externalReference String  @unique
+
+  qrCode       String?
+  qrCodeBase64 String?
+
+  valorEsperado Decimal  @db.Decimal(10, 2)
+  valorPago     Decimal? @db.Decimal(10, 2)
+
+  confirmadoEm DateTime?
+  estornadoEm  DateTime?
+  recusadoEm   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([pedidoId])
+  @@map("pagamentos")
+}
