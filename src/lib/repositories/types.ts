@@ -1,4 +1,3 @@
-import type { Prisma } from "@prisma/client";
-import type prisma from "@/lib/prisma";
+import type { Prisma, PrismaClient } from "@prisma/client";
 
-export type DbClient = typeof prisma | Prisma.TransactionClient;
+export type DbClient = PrismaClient | Prisma.TransactionClient;
