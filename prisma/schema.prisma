@@ -67,6 +67,8 @@ model Admin {
 model ConfiguracaoRestaurante {
   id String @id @default("default")
 
+  nomeRestaurante String @default("Marmita Pay")
+
   modoEntrega      ModoEntrega @default(AMBOS)
   horarioCorte     String // Ex: "10:00", interpretado em America/Sao_Paulo
   pedidosAtivos    Boolean     @default(true)
