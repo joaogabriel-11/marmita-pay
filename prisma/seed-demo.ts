@@ -1,4 +1,5 @@
 import "dotenv/config";
+import type { Categoria } from "@prisma/client";
 import prisma from "../src/lib/prisma";
 
 function getTodayDateOnlyInSaoPaulo(date = new Date()): Date {
@@ -136,7 +137,7 @@ async function main() {
   }
 
   const categoriasBanco = await prisma.categoria.findMany();
-  const categoriasPorNome = new Map(
+  const categoriasPorNome = new Map<string, Categoria>(
     categoriasBanco.map((categoria) => [categoria.nome, categoria]),
   );
   const data = getTodayDateOnlyInSaoPaulo();
