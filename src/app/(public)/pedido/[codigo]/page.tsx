@@ -1,0 +1,95 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { PublicShell } from "@/components/public/public-shell";
+import { pedidoRepository } from "@/lib/repositories";
+import { formatMoney } from "@/lib/utils/money";
+
+export const dynamic = "force-dynamic";
+
+type PedidoPageProps = {
+  params: Promise<{ codigo: string }>;
+};
+
+const statusLabels: Record<string, string> = {
+  AGUARDANDO_PAGAMENTO: "Aguardando pagamento",
+  EXPIRADO: "Expirado",
+  CANCELADO: "Cancelado",
+  CONFIRMADO: "Confirmado",
+  EM_PREPARO: "Em preparo",
+  PRONTO_PARA_RETIRADA: "Pronto para retirada",
+  SAIU_PARA_ENTREGA: "Saiu para entrega",
+  ENTREGUE: "Entregue",
+  RETIRADO: "Retirado",
+};
+
+export default async function PedidoPage({ params }: PedidoPageProps) {
+  const { codigo } = await params;
+  const codigoPedido = Number(codigo);
+
+  if (!Number.isInteger(codigoPedido)) {
+    notFound();
+  }
+
+  const pedido = await pedidoRepository.findByCodigoPedido(codigoPedido);
+
+  if (!pedido) {
+    notFound();
+  }
+
+  return (
+    <PublicShell>
+      <div className="mx-auto max-w-2xl space-y-4">
+        <section className="rounded-lg border border-zinc-200 bg-white p-5">
+          <p className="text-sm font-medium text-zinc-500">Pedido</p>
+          <h1 className="mt-1 text-3xl font-semibold">
+            #{pedido.codigoPedido}
+          </h1>
+          <div className="mt-4 rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-800">
+            {statusLabels[pedido.status]}
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-zinc-200 bg-white p-5">
+          <h2 className="font-semibold">Itens</h2>
+          <div className="mt-4 space-y-3">
+            {pedido.itens.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-start justify-between gap-3 text-sm"
+              >
+                <span>
+                  {item.quantidade}x {item.cardapioDia.prato.nome}
+                </span>
+                <strong>
+                  {formatMoney(item.precoUnitario.mul(item.quantidade))}
+                </strong>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 border-t border-zinc-200 pt-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Total</span>
+              <strong>{formatMoney(pedido.valorTotal)}</strong>
+            </div>
+          </div>
+        </section>
+
+        {pedido.pagamento?.qrCode ? (
+          <section className="rounded-lg border border-zinc-200 bg-white p-5">
+            <h2 className="font-semibold">Pix copia e cola</h2>
+            <p className="mt-2 break-all rounded-md bg-zinc-100 p-3 text-sm text-zinc-700">
+              {pedido.pagamento.qrCode}
+            </p>
+          </section>
+        ) : null}
+
+        <Link
+          href="/cardapio"
+          className="inline-flex rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium"
+        >
+          Voltar ao cardapio
+        </Link>
+      </div>
+    </PublicShell>
+  );
+}
