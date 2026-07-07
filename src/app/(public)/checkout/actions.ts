@@ -20,12 +20,14 @@ function parseItens(formData: FormData): CheckoutInput["itens"] {
     return [];
   }
 
-  const parsedItems = JSON.parse(rawItems) as Array<{
+  type ParsedCheckoutItem = {
     cardapioDiaId: string;
     quantidade: number;
-  }>;
+  };
 
-  return parsedItems.map((item) => ({
+  const parsedItems = JSON.parse(rawItems) as ParsedCheckoutItem[];
+
+  return parsedItems.map((item: ParsedCheckoutItem) => ({
     cardapioDiaId: item.cardapioDiaId,
     quantidade: item.quantidade,
   }));

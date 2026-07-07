@@ -24,6 +24,32 @@ const statusLabels: Record<string, string> = {
   RETIRADO: "Retirado",
 };
 
+type MoneyLike = Parameters<typeof formatMoney>[0];
+
+type PedidoItemView = {
+  id: string;
+  quantidade: number;
+  precoUnitario: {
+    mul(value: number): MoneyLike;
+  };
+  cardapioDia: {
+    prato: {
+      nome: string;
+    };
+  };
+};
+
+type PedidoView = {
+  codigoPedido: number;
+  status: string;
+  valorTotal: MoneyLike;
+  itens: PedidoItemView[];
+  pagamento: {
+    qrCode: string | null;
+    qrCodeBase64: string | null;
+  } | null;
+};
+
 export default async function PedidoPage({ params }: PedidoPageProps) {
   const { codigo } = await params;
   const codigoPedido = Number(codigo);
@@ -32,7 +58,9 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
     notFound();
   }
 
-  const pedido = await pedidoRepository.findByCodigoPedido(codigoPedido);
+  const pedido = (await pedidoRepository.findByCodigoPedido(
+    codigoPedido,
+  )) as PedidoView | null;
 
   if (!pedido) {
     notFound();
@@ -56,7 +84,7 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
         <section className="rounded-lg border border-zinc-200 bg-white p-5">
           <h2 className="font-semibold">Itens</h2>
           <div className="mt-4 space-y-3">
-            {pedido.itens.map((item) => (
+            {pedido.itens.map((item: PedidoItemView) => (
               <div
                 key={item.id}
                 className="flex items-start justify-between gap-3 text-sm"

@@ -31,7 +31,7 @@ export default async function CheckoutPage() {
       <CheckoutClient
         action={finalizarCheckoutAction}
         initialState={checkoutInitialState}
-        zonasEntrega={zonasEntrega.map((zona) => ({
+        zonasEntrega={zonasEntrega.map((zona: ZonaEntregaCheckout) => ({
           id: zona.id,
           nome: zona.nome,
           taxaEntrega: zona.taxaEntrega.toString(),
