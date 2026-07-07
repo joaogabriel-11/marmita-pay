@@ -2,6 +2,7 @@ export * from "./atualizar-status-pedido";
 export * from "./calcular-taxa-entrega";
 export * from "./criar-pedido-com-pix";
 export * from "./expirar-pedidos-pendentes";
+export * from "./expirar-pedido-se-vencido";
 export * from "./processar-webhook-pagamento";
 export * from "./sincronizar-pagamento-pedido";
 export * from "./validar-tipo-entrega";

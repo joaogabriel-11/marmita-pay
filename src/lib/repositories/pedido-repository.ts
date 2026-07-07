@@ -100,6 +100,16 @@ export function createPedidoRepository(db: DbClient = prisma) {
         data: { status: "EXPIRADO" },
       });
     },
+
+    expireOne(id: string) {
+      return db.pedido.updateMany({
+        where: {
+          id,
+          status: "AGUARDANDO_PAGAMENTO",
+        },
+        data: { status: "EXPIRADO" },
+      });
+    },
   };
 }
 

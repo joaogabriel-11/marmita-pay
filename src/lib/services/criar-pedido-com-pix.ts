@@ -21,6 +21,7 @@ import {
 } from "./verificar-disponibilidade";
 import { assertDentroHorarioCorte } from "./verificar-horario-corte";
 import { assertTipoEntregaPermitido } from "./validar-tipo-entrega";
+import { expirarPedidosPendentes } from "./expirar-pedidos-pendentes";
 
 export type CriarPagamentoPixInput = {
   pedidoId: string;
@@ -45,6 +46,8 @@ export async function criarPedidoComPix(
   agora = new Date(),
 ) {
   const checkout = checkoutSchema.parse(input);
+  await expirarPedidosPendentes(agora);
+
   const configuracao = await configuracaoRepository.get();
 
   if (!configuracao) {

@@ -333,5 +333,5 @@ Itens conscientemente deixados de fora da primeira versão:
 ## 13. Pontos em Aberto
 
 - [ ] Confirmar se o admin usará apenas login Google ou também email/senha.
-- [ ] Confirmar frequência do cron de expiração conforme plano da Vercel.
+- [x] Expiração de pedidos definida como sob demanda, sem depender de cron pago.
 - [ ] Confirmar solução de rate limit compatível com Vercel Hobby.

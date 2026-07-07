@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pedidoRepository } from "@/lib/repositories";
-import { sincronizarPagamentoPedido } from "@/lib/services";
+import {
+  expirarPedidoSeVencido,
+  sincronizarPagamentoPedido,
+} from "@/lib/services";
 import { formatMoney } from "@/lib/utils/money";
 
 type PedidoStatusRouteProps = {
@@ -31,9 +34,11 @@ export async function GET(
   }
 
   const shouldSync = request.nextUrl.searchParams.get("sync") === "1";
-  const pedido = shouldSync
-    ? await sincronizarPagamentoPedido(codigoPedido)
-    : await pedidoRepository.findByCodigoPedido(codigoPedido);
+  const pedidoAtualizado = await expirarPedidoSeVencido(codigoPedido);
+  const pedido =
+    shouldSync && pedidoAtualizado?.status === "AGUARDANDO_PAGAMENTO"
+      ? await sincronizarPagamentoPedido(codigoPedido)
+      : (pedidoAtualizado ?? await pedidoRepository.findByCodigoPedido(codigoPedido));
 
   if (!pedido) {
     return NextResponse.json({ error: "Pedido nao encontrado." }, { status: 404 });

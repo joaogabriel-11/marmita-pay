@@ -13,6 +13,7 @@ import {
   calcularDisponibilidadeReal,
   mapearReservasAtivas,
 } from "./verificar-disponibilidade";
+import { expirarPedidosPendentes } from "./expirar-pedidos-pendentes";
 
 export type CardapioPublicoItem = {
   id: string;
@@ -47,6 +48,8 @@ export type CardapioPublico = {
 export async function listarCardapioPublico(
   agora = new Date(),
 ): Promise<CardapioPublico> {
+  await expirarPedidosPendentes(agora);
+
   const configuracao = await configuracaoRepository.get();
 
   if (!configuracao) {

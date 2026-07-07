@@ -42,7 +42,7 @@ O projeto usa **Server Actions** do Next.js para a maioria das mutações intern
 Route Handlers (`/app/api/...`) ficam reservados para pontos que precisam de URL HTTP tradicional:
 
 - webhook do Mercado Pago;
-- endpoint de cron para expiração de pedidos;
+- expiração sob demanda de pedidos pendentes;
 - endpoints futuros para app mobile ou integrações externas.
 
 ---
@@ -73,9 +73,10 @@ Route Handlers (`/app/api/...`) ficam reservados para pontos que precisam de URL
     /webhooks
       /mercado-pago
         /route.ts
-    /cron
-      /expirar-pedidos
-        /route.ts
+    /pedidos
+      /[codigo]
+        /status
+          /route.ts
 
 /lib
   /auth
@@ -301,16 +302,13 @@ O mesmo webhook pode ser enviado mais de uma vez. O sistema deve ignorar eventos
 
 Pedidos não pagos em até 15 minutos devem expirar.
 
-Endpoint sugerido:
-
-```txt
-/api/cron/expirar-pedidos
-```
-
 ### Sequência
 
-1. Vercel Cron chama o endpoint periodicamente.
-2. Endpoint busca pedidos:
+1. O sistema executa a expiração sob demanda em fluxos críticos:
+   - abertura do cardápio;
+   - tentativa de checkout;
+   - consulta da tela de status do pedido.
+2. O service busca pedidos:
 
 ```txt
 status = AGUARDANDO_PAGAMENTO
@@ -318,13 +316,13 @@ expiraEm < now
 ```
 
 3. Atualiza status para `EXPIRADO`.
-4. Atualiza pagamento para `RECUSADO` ou mantém `PENDENTE` com marcação de expiração, conforme implementação final.
+4. Atualiza pagamento para `RECUSADO`.
 
 Como a reserva é calculada dinamicamente a partir dos pedidos pendentes e não expirados, mudar o status para `EXPIRADO` libera a reserva automaticamente.
 
 ### Timezone
 
-`expiraEm` é timestamp absoluto salvo em UTC. O cron não precisa aplicar timezone para expiração.
+`expiraEm` é timestamp absoluto salvo em UTC. A expiração não precisa aplicar timezone.
 
 Já regras como `horario_corte` precisam usar `America/Sao_Paulo` na camada de services.
 
@@ -407,7 +405,6 @@ GOOGLE_CLIENT_SECRET
 MERCADOPAGO_ACCESS_TOKEN
 MERCADOPAGO_WEBHOOK_SECRET
 RESEND_API_KEY
-CRON_SECRET
 ```
 
 Regras:
@@ -415,7 +412,6 @@ Regras:
 - nunca commitar `.env`;
 - manter `.env.example` atualizado;
 - validar assinatura do webhook;
-- proteger endpoint de cron com segredo;
 - revalidar todos os preços no servidor;
 - revalidar disponibilidade no servidor;
 - ignorar totais vindos do client;
