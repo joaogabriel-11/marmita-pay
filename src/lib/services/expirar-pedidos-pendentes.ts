@@ -30,6 +30,10 @@ export async function expirarPedidosPendentes(agora = new Date()) {
         pagamentosAtualizados: pagamentosAtualizados.count,
       };
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      maxWait: 10_000,
+      timeout: 20_000,
+    },
   );
 }

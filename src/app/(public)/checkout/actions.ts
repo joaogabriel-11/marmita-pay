@@ -2,24 +2,11 @@
 
 import { z } from "zod";
 import { DomainError } from "@/lib/core/domain-error";
-import { criarPagamentoPixMock } from "@/lib/mercado-pago/criar-pagamento-pix-mock";
+import { MercadoPagoApiError } from "@/lib/mercado-pago/criar-pagamento-pix";
+import { getCriarPagamentoPixProvider } from "@/lib/mercado-pago/provider";
 import { criarPedidoComPix } from "@/lib/services";
 import type { CheckoutInput } from "@/lib/validations";
-
-export type CheckoutActionState =
-  | {
-      success: false;
-      message: string | null;
-    }
-  | {
-      success: true;
-      codigoPedido: number;
-    };
-
-export const checkoutInitialState: CheckoutActionState = {
-  success: false,
-  message: null,
-};
+import type { CheckoutActionState } from "./state";
 
 function getFormString(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
@@ -71,7 +58,10 @@ export async function finalizarCheckoutAction(
       itens: parseItens(formData),
     };
 
-    const pedido = await criarPedidoComPix(input, criarPagamentoPixMock);
+    const pedido = await criarPedidoComPix(
+      input,
+      getCriarPagamentoPixProvider(),
+    );
 
     if (!pedido) {
       return {
@@ -93,6 +83,20 @@ export async function finalizarCheckoutAction(
       return {
         success: false,
         message: error.issues[0]?.message ?? "Dados invalidos.",
+      };
+    }
+
+    if (error instanceof MercadoPagoApiError) {
+      return {
+        success: false,
+        message: `Mercado Pago recusou a criacao do Pix (${error.status}). ${error.responseBody}`,
+      };
+    }
+
+    if (error instanceof Error) {
+      return {
+        success: false,
+        message: error.message,
       };
     }
 

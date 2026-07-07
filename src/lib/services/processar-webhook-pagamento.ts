@@ -89,7 +89,11 @@ export async function processarWebhookPagamento(
 
       return { processado: true };
     },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      maxWait: 10_000,
+      timeout: 20_000,
+    },
   );
 
   return resultado;

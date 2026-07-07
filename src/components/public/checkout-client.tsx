@@ -71,9 +71,20 @@ export function CheckoutClient({
       return;
     }
 
-    writeCart([]);
-    router.push(`/pedido/${state.codigoPedido}`);
+    router.replace(`/pedido/${state.codigoPedido}`);
+    window.setTimeout(() => writeCart([]), 0);
   }, [router, state]);
+
+  if (state.success) {
+    return (
+      <div className="rounded-lg border border-zinc-200 bg-white p-6 text-center">
+        <h1 className="text-xl font-semibold">Pedido criado</h1>
+        <p className="mt-2 text-sm text-zinc-600">
+          Estamos abrindo a tela de pagamento do pedido #{state.codigoPedido}.
+        </p>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (

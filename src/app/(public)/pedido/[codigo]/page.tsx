@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { PublicShell } from "@/components/public/public-shell";
 import { pedidoRepository } from "@/lib/repositories";
@@ -76,7 +77,19 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
 
         {pedido.pagamento?.qrCode ? (
           <section className="rounded-lg border border-zinc-200 bg-white p-5">
-            <h2 className="font-semibold">Pix copia e cola</h2>
+            <h2 className="font-semibold">Pagamento Pix</h2>
+            {pedido.pagamento.qrCodeBase64 ? (
+              <div className="mt-4 flex justify-center">
+                <Image
+                  src={`data:image/png;base64,${pedido.pagamento.qrCodeBase64}`}
+                  alt="QR Code Pix"
+                  width={224}
+                  height={224}
+                  className="h-56 w-56 rounded-md border border-zinc-200 bg-white p-2"
+                />
+              </div>
+            ) : null}
+            <h3 className="mt-4 text-sm font-medium">Pix copia e cola</h3>
             <p className="mt-2 break-all rounded-md bg-zinc-100 p-3 text-sm text-zinc-700">
               {pedido.pagamento.qrCode}
             </p>

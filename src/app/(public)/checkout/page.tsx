@@ -2,10 +2,8 @@ import { CheckoutClient } from "@/components/public/checkout-client";
 import { PublicShell } from "@/components/public/public-shell";
 import { zonaEntregaRepository } from "@/lib/repositories";
 import { formatMoney } from "@/lib/utils/money";
-import {
-  checkoutInitialState,
-  finalizarCheckoutAction,
-} from "./actions";
+import { finalizarCheckoutAction } from "./actions";
+import { checkoutInitialState } from "./state";
 
 export const dynamic = "force-dynamic";
 
