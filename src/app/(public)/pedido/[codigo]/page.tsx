@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { OrderStatusPolling } from "@/components/public/order-status-polling";
 import { PublicShell } from "@/components/public/public-shell";
 import { pedidoRepository } from "@/lib/repositories";
 import { formatMoney } from "@/lib/utils/money";
@@ -45,9 +46,11 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
           <h1 className="mt-1 text-3xl font-semibold">
             #{pedido.codigoPedido}
           </h1>
-          <div className="mt-4 rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-800">
-            {statusLabels[pedido.status]}
-          </div>
+          <OrderStatusPolling
+            codigoPedido={pedido.codigoPedido}
+            initialStatus={pedido.status}
+            initialStatusLabel={statusLabels[pedido.status]}
+          />
         </section>
 
         <section className="rounded-lg border border-zinc-200 bg-white p-5">
