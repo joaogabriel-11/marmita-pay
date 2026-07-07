@@ -14,6 +14,7 @@ export type CartItem = {
 
 export const CART_STORAGE_KEY = "marmita-pay-cart";
 
+const EMPTY_CART: CartItem[] = [];
 let cartSnapshot: CartItem[] | null = null;
 
 export function readCart(): CartItem[] {
@@ -42,7 +43,7 @@ export function writeCart(items: CartItem[]): void {
 
 function getCartSnapshot(): CartItem[] {
   if (typeof window === "undefined") {
-    return [];
+    return EMPTY_CART;
   }
 
   if (cartSnapshot === null) {
@@ -53,7 +54,7 @@ function getCartSnapshot(): CartItem[] {
 }
 
 function getServerCartSnapshot(): CartItem[] {
-  return [];
+  return EMPTY_CART;
 }
 
 function subscribeCart(callback: () => void): () => void {
