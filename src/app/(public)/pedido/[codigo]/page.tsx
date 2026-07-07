@@ -45,6 +45,7 @@ type PedidoView = {
   valorTotal: MoneyLike;
   itens: PedidoItemView[];
   pagamento: {
+    status: string;
     qrCode: string | null;
     qrCodeBase64: string | null;
   } | null;
@@ -78,6 +79,7 @@ export default async function PedidoPage({ params }: PedidoPageProps) {
             codigoPedido={pedido.codigoPedido}
             initialStatus={pedido.status}
             initialStatusLabel={statusLabels[pedido.status]}
+            initialPagamentoStatus={pedido.pagamento?.status ?? null}
           />
         </section>
 

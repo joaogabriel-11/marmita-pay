@@ -6,6 +6,7 @@ type OrderStatusPollingProps = {
   codigoPedido: number;
   initialStatus: string;
   initialStatusLabel: string;
+  initialPagamentoStatus: string | null;
 };
 
 type PedidoStatusResponse = {
@@ -16,14 +17,31 @@ type PedidoStatusResponse = {
 
 const finalStatuses = new Set(["CONFIRMADO", "EXPIRADO", "CANCELADO"]);
 
+const pagamentoStatusLabels: Record<string, string> = {
+  PENDENTE: "Aguardando",
+  APROVADO: "Aprovado",
+  RECUSADO: "Recusado",
+  ESTORNADO: "Estornado",
+};
+
+const pagamentoStatusClasses: Record<string, string> = {
+  PENDENTE: "bg-amber-50 text-amber-700 ring-amber-200",
+  APROVADO: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  RECUSADO: "bg-red-50 text-red-700 ring-red-200",
+  ESTORNADO: "bg-red-50 text-red-700 ring-red-200",
+};
+
 export function OrderStatusPolling({
   codigoPedido,
   initialStatus,
   initialStatusLabel,
+  initialPagamentoStatus,
 }: OrderStatusPollingProps) {
   const [status, setStatus] = useState(initialStatus);
   const [statusLabel, setStatusLabel] = useState(initialStatusLabel);
-  const [pagamentoStatus, setPagamentoStatus] = useState<string | null>(null);
+  const [pagamentoStatus, setPagamentoStatus] = useState<string | null>(
+    initialPagamentoStatus,
+  );
 
   useEffect(() => {
     if (finalStatuses.has(status)) {
@@ -53,8 +71,13 @@ export function OrderStatusPolling({
     <div className="mt-4 rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-800">
       {statusLabel}
       {pagamentoStatus ? (
-        <span className="ml-2 text-xs font-normal text-zinc-500">
-          Pagamento: {pagamentoStatus}
+        <span
+          className={`ml-2 inline-flex rounded-md px-2 py-1 text-xs font-medium ring-1 ${
+            pagamentoStatusClasses[pagamentoStatus] ??
+            "bg-zinc-50 text-zinc-600 ring-zinc-200"
+          }`}
+        >
+          Pagamento: {pagamentoStatusLabels[pagamentoStatus] ?? pagamentoStatus}
         </span>
       ) : null}
     </div>
