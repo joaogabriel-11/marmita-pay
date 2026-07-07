@@ -1,4 +1,7 @@
-import Link from "next/link";
+import {
+  AdminOrdersRealtimeTable,
+  type PedidoAdminRealtimeItem,
+} from "@/components/admin/admin-orders-realtime-table";
 import { pedidoRepository } from "@/lib/repositories";
 import { formatMoney } from "@/lib/utils/money";
 
@@ -10,28 +13,30 @@ type PedidoAdminListItem = {
   clienteNome: string;
   clienteTelefone: string;
   status: string;
+  tipoEntrega: "DELIVERY" | "RETIRADA";
   valorTotal: Parameters<typeof formatMoney>[0];
   pagamento: {
     status: string;
   } | null;
 };
 
-const statusLabels: Record<string, string> = {
-  AGUARDANDO_PAGAMENTO: "Aguardando pagamento",
-  EXPIRADO: "Expirado",
-  CANCELADO: "Cancelado",
-  CONFIRMADO: "Confirmado",
-  EM_PREPARO: "Em preparo",
-  PRONTO_PARA_RETIRADA: "Pronto para retirada",
-  SAIU_PARA_ENTREGA: "Saiu para entrega",
-  ENTREGUE: "Entregue",
-  RETIRADO: "Retirado",
-};
-
 export default async function AdminPedidosPage() {
-  const pedidos = (await pedidoRepository.list({
+  const pedidosBanco = (await pedidoRepository.list({
     take: 100,
   })) as PedidoAdminListItem[];
+  const pedidos: PedidoAdminRealtimeItem[] = pedidosBanco.map(
+    (pedido: PedidoAdminListItem) => ({
+      id: pedido.id,
+      codigoPedido: pedido.codigoPedido,
+      clienteNome: pedido.clienteNome,
+      clienteTelefone: pedido.clienteTelefone,
+      status: pedido.status,
+      tipoEntrega: pedido.tipoEntrega,
+      valorTotal: pedido.valorTotal.toString(),
+      valorTotalFormatado: formatMoney(pedido.valorTotal),
+      pagamentoStatus: pedido.pagamento?.status ?? "PENDENTE",
+    }),
+  );
 
   return (
     <div className="space-y-5">
@@ -42,46 +47,12 @@ export default async function AdminPedidosPage() {
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
-        <table className="w-full min-w-[760px] text-left text-sm">
-          <thead className="border-b border-zinc-200 bg-zinc-50 text-zinc-600">
-            <tr>
-              <th className="px-4 py-3 font-medium">Pedido</th>
-              <th className="px-4 py-3 font-medium">Cliente</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Pagamento</th>
-              <th className="px-4 py-3 font-medium">Total</th>
-              <th className="px-4 py-3 font-medium">Acoes</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100">
-            {pedidos.map((pedido: PedidoAdminListItem) => (
-              <tr key={pedido.id}>
-                <td className="px-4 py-3 font-medium">#{pedido.codigoPedido}</td>
-                <td className="px-4 py-3">
-                  <div>{pedido.clienteNome}</div>
-                  <div className="text-xs text-zinc-500">
-                    {pedido.clienteTelefone}
-                  </div>
-                </td>
-                <td className="px-4 py-3">{statusLabels[pedido.status]}</td>
-                <td className="px-4 py-3">
-                  {pedido.pagamento?.status ?? "Sem pagamento"}
-                </td>
-                <td className="px-4 py-3">{formatMoney(pedido.valorTotal)}</td>
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/pedido/${pedido.codigoPedido}`}
-                    className="rounded-md border border-zinc-300 px-3 py-2 text-xs font-medium"
-                  >
-                    Ver
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <AdminOrdersRealtimeTable
+        initialPedidos={pedidos}
+        supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}
+        supabaseAnonKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ""}
+        restauranteId={null}
+      />
     </div>
   );
 }

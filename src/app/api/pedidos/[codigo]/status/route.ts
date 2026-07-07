@@ -34,14 +34,21 @@ export async function GET(
   }
 
   const shouldSync = request.nextUrl.searchParams.get("sync") === "1";
-  const pedidoAtualizado = await expirarPedidoSeVencido(codigoPedido);
-  const pedido =
-    shouldSync && pedidoAtualizado?.status === "AGUARDANDO_PAGAMENTO"
+  const pedidoAtual = await pedidoRepository.findByCodigoPedido(codigoPedido);
+  const pedidoSincronizado =
+    shouldSync && pedidoAtual?.status === "AGUARDANDO_PAGAMENTO"
       ? await sincronizarPagamentoPedido(codigoPedido)
-      : (pedidoAtualizado ?? await pedidoRepository.findByCodigoPedido(codigoPedido));
+      : pedidoAtual;
+  const pedido =
+    pedidoSincronizado?.status === "AGUARDANDO_PAGAMENTO"
+      ? await expirarPedidoSeVencido(codigoPedido)
+      : pedidoSincronizado;
 
   if (!pedido) {
-    return NextResponse.json({ error: "Pedido nao encontrado." }, { status: 404 });
+    return NextResponse.json(
+      { error: "Pedido nao encontrado." },
+      { status: 404 },
+    );
   }
 
   return NextResponse.json({

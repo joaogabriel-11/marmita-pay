@@ -62,7 +62,7 @@ export function OrderStatusPolling({
       setStatus(data.status);
       setStatusLabel(data.statusLabel);
       setPagamentoStatus(data.pagamentoStatus);
-    }, 5000);
+    }, 3000);
 
     return () => window.clearInterval(intervalId);
   }, [codigoPedido, status]);
