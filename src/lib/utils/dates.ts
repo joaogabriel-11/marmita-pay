@@ -36,6 +36,10 @@ export function getTodayInSaoPaulo(date = now()): string {
   return `${year}-${month}-${day}`;
 }
 
+export function getTodayDateOnlyInSaoPaulo(date = now()): Date {
+  return new Date(`${getTodayInSaoPaulo(date)}T00:00:00.000Z`);
+}
+
 export function isBeforeCutoff(
   cutoffTime: string,
   date = now(),

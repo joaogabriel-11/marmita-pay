@@ -48,8 +48,25 @@ export function createPagamentoRepository(db: DbClient = prisma) {
       return db.pagamento.update({ where: { id }, data });
     },
 
+    approvePending(id: string, data: Prisma.PagamentoUpdateManyMutationInput) {
+      return db.pagamento.updateMany({
+        where: { id, status: "PENDENTE" },
+        data,
+      });
+    },
+
     updateByPedidoId(pedidoId: string, data: Prisma.PagamentoUpdateInput) {
       return db.pagamento.update({ where: { pedidoId }, data });
+    },
+
+    updateManyByPedidoIds(
+      pedidoIds: string[],
+      data: Prisma.PagamentoUpdateManyMutationInput,
+    ) {
+      return db.pagamento.updateMany({
+        where: { pedidoId: { in: pedidoIds } },
+        data,
+      });
     },
   };
 }

@@ -18,6 +18,13 @@ export function createCardapioRepository(db: DbClient = prisma) {
       });
     },
 
+    findManyByIds(ids: string[]) {
+      return db.cardapioDia.findMany({
+        where: { id: { in: ids } },
+        include: { prato: { include: { categoria: true } } },
+      });
+    },
+
     listByDate(data: Date, params?: { somenteAtivos?: boolean }) {
       return db.cardapioDia.findMany({
         where: {
