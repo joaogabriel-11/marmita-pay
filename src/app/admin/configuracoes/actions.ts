@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { assertAdminSession } from "@/lib/auth/permissions";
+import { requireAdminSessionOrRedirect } from "@/lib/auth/permissions";
 import {
   configuracaoRepository,
   zonaEntregaRepository,
@@ -17,7 +17,7 @@ function getBoolean(formData: FormData, key: string) {
 }
 
 export async function salvarConfiguracoesAction(formData: FormData) {
-  await assertAdminSession();
+  await requireAdminSessionOrRedirect();
 
   const input = configuracaoSchema.parse({
     nomeRestaurante: formData.get("nomeRestaurante"),
@@ -52,7 +52,7 @@ export async function salvarConfiguracoesAction(formData: FormData) {
 }
 
 export async function criarZonaEntregaAction(formData: FormData) {
-  await assertAdminSession();
+  await requireAdminSessionOrRedirect();
 
   const input = zonaEntregaSchema.parse({
     nome: formData.get("nome"),
@@ -67,7 +67,7 @@ export async function criarZonaEntregaAction(formData: FormData) {
 }
 
 export async function atualizarZonaEntregaAction(formData: FormData) {
-  await assertAdminSession();
+  await requireAdminSessionOrRedirect();
 
   const id = z.string().min(1).parse(formData.get("id"));
   const input = zonaEntregaSchema.parse({
@@ -83,7 +83,7 @@ export async function atualizarZonaEntregaAction(formData: FormData) {
 }
 
 export async function desativarZonaEntregaAction(formData: FormData) {
-  await assertAdminSession();
+  await requireAdminSessionOrRedirect();
 
   const id = z.string().min(1).parse(formData.get("id"));
   await zonaEntregaRepository.deactivate(id);

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { assertAdminSession } from "@/lib/auth/permissions";
+import { requireAdminSessionOrRedirect } from "@/lib/auth/permissions";
 import { DomainError } from "@/lib/core/domain-error";
 import { atualizarStatusPedido } from "@/lib/services";
 import { atualizarStatusPedidoSchema } from "@/lib/validations";
@@ -13,7 +13,7 @@ function getOptionalString(formData: FormData, key: string): string | undefined 
 }
 
 export async function atualizarStatusPedidoAction(formData: FormData) {
-  await assertAdminSession();
+  await requireAdminSessionOrRedirect();
 
   try {
     const input = atualizarStatusPedidoSchema.parse({

@@ -54,6 +54,7 @@ export type PedidoAdminRealtimeItem = {
 type FiltroPedidos =
   | "TODOS"
   | "EM_ANDAMENTO"
+  | "AGUARDANDO_PAGAMENTO"
   | "EXPIRADOS"
   | "CANCELADOS"
   | "FINALIZADOS";
@@ -119,6 +120,7 @@ const statusFinalizados = new Set(["RETIRADO", "ENTREGUE"]);
 const filtrosPedidos: Array<{ label: string; value: FiltroPedidos }> = [
   { label: "Todos", value: "TODOS" },
   { label: "Em andamento", value: "EM_ANDAMENTO" },
+  { label: "Aguardando pagamento", value: "AGUARDANDO_PAGAMENTO" },
   { label: "Expirados", value: "EXPIRADOS" },
   { label: "Cancelados", value: "CANCELADOS" },
   { label: "Retirados/entregues", value: "FINALIZADOS" },
@@ -233,6 +235,10 @@ function filtrarPedidos(
     return pedidos.filter((pedido) => statusEmAndamento.has(pedido.status));
   }
 
+  if (filtro === "AGUARDANDO_PAGAMENTO") {
+    return pedidos.filter((pedido) => pedido.status === "AGUARDANDO_PAGAMENTO");
+  }
+
   if (filtro === "EXPIRADOS") {
     return pedidos.filter((pedido) => pedido.status === "EXPIRADO");
   }
@@ -263,6 +269,12 @@ export function AdminOrdersRealtimeTable({
     : undefined;
 
   const canUseRealtime = Boolean(supabaseUrl && supabaseAnonKey && scriptReady);
+  const realtimeLabel =
+    !supabaseUrl || !supabaseAnonKey
+      ? "nao configurado"
+      : !scriptReady
+        ? "carregando"
+        : realtimeStatus;
   const pedidosFiltrados = filtrarPedidos(pedidos, filtroAtivo);
 
   useEffect(() => {
@@ -347,7 +359,7 @@ export function AdminOrdersRealtimeTable({
       />
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-zinc-500">
-          Realtime: {canUseRealtime ? realtimeStatus : "nao configurado"}
+          Realtime: {realtimeLabel}
         </p>
       </div>
       <div className="flex flex-wrap gap-2">

@@ -4,8 +4,13 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { formatCurrency, useCart, writeCart } from "./cart-store";
 
-export function CartClient() {
+type CartClientProps = {
+  pedidoMinimo: string | null;
+};
+
+export function CartClient({ pedidoMinimo }: CartClientProps) {
   const items = useCart();
+  const pedidoMinimoValue = pedidoMinimo ? Number(pedidoMinimo) : null;
 
   const total = useMemo(
     () =>
@@ -15,6 +20,14 @@ export function CartClient() {
       ),
     [items],
   );
+  const faltaPedidoMinimo =
+    pedidoMinimoValue && total < pedidoMinimoValue
+      ? pedidoMinimoValue - total
+      : 0;
+  const pedidoMinimoAtingido = faltaPedidoMinimo <= 0;
+  const progressoPedidoMinimo = pedidoMinimoValue
+    ? Math.min((total / pedidoMinimoValue) * 100, 100)
+    : 100;
 
   function updateQuantity(cardapioDiaId: string, quantidade: number) {
     const nextItems = items
@@ -113,12 +126,43 @@ export function CartClient() {
           <span>Subtotal</span>
           <strong>{formatCurrency(total)}</strong>
         </div>
-        <Link
-          href="/checkout"
-          className="mt-4 flex w-full justify-center rounded-md bg-zinc-950 px-4 py-3 text-sm font-medium text-white"
-        >
-          Ir para checkout
-        </Link>
+        {pedidoMinimoValue ? (
+          <div className="mt-4 rounded-md bg-zinc-50 p-3">
+            <div className="flex items-center justify-between gap-3 text-xs text-zinc-600">
+              <span>Pedido minimo</span>
+              <strong>{formatCurrency(pedidoMinimoValue)}</strong>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-200">
+              <div
+                className={`h-full rounded-full ${
+                  pedidoMinimoAtingido ? "bg-emerald-500" : "bg-amber-500"
+                }`}
+                style={{ width: `${progressoPedidoMinimo}%` }}
+              />
+            </div>
+            <p className="mt-2 text-xs text-zinc-600">
+              {pedidoMinimoAtingido
+                ? "Pedido minimo atingido."
+                : `Faltam ${formatCurrency(faltaPedidoMinimo)} para finalizar.`}
+            </p>
+          </div>
+        ) : null}
+        {pedidoMinimoAtingido ? (
+          <Link
+            href="/checkout"
+            className="mt-4 flex w-full justify-center rounded-md bg-zinc-950 px-4 py-3 text-sm font-medium text-white"
+          >
+            Ir para checkout
+          </Link>
+        ) : (
+          <button
+            type="button"
+            className="mt-4 flex w-full cursor-not-allowed justify-center rounded-md bg-zinc-300 px-4 py-3 text-sm font-medium text-zinc-600"
+            disabled
+          >
+            Pedido minimo de {formatCurrency(pedidoMinimoValue ?? 0)}
+          </button>
+        )}
       </aside>
     </div>
   );

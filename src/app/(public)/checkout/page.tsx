@@ -1,6 +1,9 @@
 import { CheckoutClient } from "@/components/public/checkout-client";
 import { PublicShell } from "@/components/public/public-shell";
-import { zonaEntregaRepository } from "@/lib/repositories";
+import {
+  configuracaoRepository,
+  zonaEntregaRepository,
+} from "@/lib/repositories";
 import { finalizarCheckoutAction } from "./actions";
 import { checkoutInitialState } from "./state";
 
@@ -22,16 +25,20 @@ function formatMoneyFromString(value: string): string {
 }
 
 export default async function CheckoutPage() {
-  const zonasEntrega: ZonaEntregaCheckout[] = await zonaEntregaRepository.list({
-    somenteAtivas: true,
-  });
+  const [zonasEntrega, configuracao] = await Promise.all([
+    zonaEntregaRepository.list({
+      somenteAtivas: true,
+    }),
+    configuracaoRepository.get(),
+  ]);
 
   return (
     <PublicShell>
       <CheckoutClient
         action={finalizarCheckoutAction}
         initialState={checkoutInitialState}
-        zonasEntrega={zonasEntrega.map((zona: ZonaEntregaCheckout) => ({
+        pedidoMinimo={configuracao?.pedidoMinimo?.toString() ?? null}
+        zonasEntrega={(zonasEntrega as ZonaEntregaCheckout[]).map((zona) => ({
           id: zona.id,
           nome: zona.nome,
           taxaEntrega: zona.taxaEntrega.toString(),

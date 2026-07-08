@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { assertAdminSession } from "@/lib/auth/permissions";
+import { requireAdminSessionOrRedirect } from "@/lib/auth/permissions";
 import {
   cardapioRepository,
   pratoRepository,
@@ -14,7 +14,7 @@ function getBoolean(formData: FormData, key: string) {
 }
 
 export async function salvarItemCardapioAction(formData: FormData) {
-  await assertAdminSession();
+  await requireAdminSessionOrRedirect();
 
   const input = cardapioDiaSchema.parse({
     pratoId: formData.get("pratoId"),
@@ -62,7 +62,7 @@ export async function salvarItemCardapioAction(formData: FormData) {
 }
 
 export async function removerItemCardapioAction(formData: FormData) {
-  await assertAdminSession();
+  await requireAdminSessionOrRedirect();
 
   const id = z.string().min(1).parse(formData.get("id"));
   await cardapioRepository.deactivate(id);

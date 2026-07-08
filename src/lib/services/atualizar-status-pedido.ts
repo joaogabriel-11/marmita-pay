@@ -1,6 +1,11 @@
 import type { Pedido, StatusPedido, TipoEntregaPedido } from "@prisma/client";
 import { DomainError } from "@/lib/core/domain-error";
-import { pedidoRepository } from "@/lib/repositories";
+import prisma from "@/lib/prisma";
+import {
+  createPagamentoRepository,
+  createPedidoRepository,
+  pedidoRepository,
+} from "@/lib/repositories";
 
 const transicoesBase: Record<StatusPedido, StatusPedido[]> = {
   AGUARDANDO_PAGAMENTO: ["CONFIRMADO", "EXPIRADO", "CANCELADO"],
@@ -62,10 +67,25 @@ export async function atualizarStatusPedido(input: {
 
   assertTransicaoStatusPedido(pedido, input.status);
 
-  return pedidoRepository.update(input.pedidoId, {
-    status: input.status,
-    canceladoEm: input.status === "CANCELADO" ? new Date() : undefined,
-    motivoCancelamento:
-      input.status === "CANCELADO" ? input.motivoCancelamento : undefined,
+  return prisma.$transaction(async (tx) => {
+    const pedidos = createPedidoRepository(tx);
+    const pagamentos = createPagamentoRepository(tx);
+    const canceladoEm = input.status === "CANCELADO" ? new Date() : undefined;
+
+    const pedidoAtualizado = await pedidos.update(input.pedidoId, {
+      status: input.status,
+      canceladoEm,
+      motivoCancelamento:
+        input.status === "CANCELADO" ? input.motivoCancelamento : undefined,
+    });
+
+    if (input.status === "CANCELADO") {
+      await pagamentos.updatePendingByPedidoId(input.pedidoId, {
+        status: "RECUSADO",
+        recusadoEm: canceladoEm,
+      });
+    }
+
+    return pedidoAtualizado;
   });
 }

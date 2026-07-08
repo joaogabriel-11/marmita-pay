@@ -29,6 +29,7 @@ type CheckoutActionState =
 
 type CheckoutClientProps = {
   zonasEntrega: ZonaEntregaOption[];
+  pedidoMinimo: string | null;
   action: (
     state: CheckoutActionState,
     formData: FormData,
@@ -38,6 +39,7 @@ type CheckoutClientProps = {
 
 export function CheckoutClient({
   zonasEntrega,
+  pedidoMinimo,
   action,
   initialState,
 }: CheckoutClientProps) {
@@ -56,6 +58,9 @@ export function CheckoutClient({
       ),
     [items],
   );
+  const pedidoMinimoValue = pedidoMinimo ? Number(pedidoMinimo) : null;
+  const pedidoMinimoAtingido =
+    !pedidoMinimoValue || subtotal >= pedidoMinimoValue;
   const itensJson = useMemo(
     () =>
       JSON.stringify(
@@ -100,6 +105,25 @@ export function CheckoutClient({
           className="mt-4 inline-flex rounded-md bg-zinc-950 px-4 py-2 text-sm font-medium text-white"
         >
           Ver cardapio
+        </Link>
+      </div>
+    );
+  }
+
+  if (!pedidoMinimoAtingido) {
+    return (
+      <div className="rounded-lg border border-zinc-200 bg-white p-6 text-center">
+        <h1 className="text-xl font-semibold">
+          Pedido minimo de {formatCurrency(pedidoMinimoValue ?? 0)}
+        </h1>
+        <p className="mt-2 text-sm text-zinc-600">
+          Adicione mais itens ao carrinho para finalizar o pedido.
+        </p>
+        <Link
+          href="/carrinho"
+          className="mt-4 inline-flex rounded-md bg-zinc-950 px-4 py-2 text-sm font-medium text-white"
+        >
+          Voltar ao carrinho
         </Link>
       </div>
     );

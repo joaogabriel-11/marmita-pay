@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { assertAdminSession } from "@/lib/auth/permissions";
+import { requireAdminSessionOrRedirect } from "@/lib/auth/permissions";
 import {
   categoriaRepository,
   pratoRepository,
@@ -14,7 +14,7 @@ function getBoolean(formData: FormData, key: string) {
 }
 
 export async function criarPratoAction(formData: FormData) {
-  await assertAdminSession();
+  await requireAdminSessionOrRedirect();
 
   const input = pratoSchema.parse({
     nome: formData.get("nome"),
@@ -40,7 +40,7 @@ export async function criarPratoAction(formData: FormData) {
 }
 
 export async function atualizarPratoAction(formData: FormData) {
-  await assertAdminSession();
+  await requireAdminSessionOrRedirect();
 
   const id = z.string().min(1).parse(formData.get("id"));
   const input = pratoSchema.parse({
@@ -67,7 +67,7 @@ export async function atualizarPratoAction(formData: FormData) {
 }
 
 export async function excluirPratoAction(formData: FormData) {
-  await assertAdminSession();
+  await requireAdminSessionOrRedirect();
 
   const id = z.string().min(1).parse(formData.get("id"));
 
@@ -94,7 +94,7 @@ export async function excluirPratoAction(formData: FormData) {
 }
 
 export async function criarCategoriaAction(formData: FormData) {
-  await assertAdminSession();
+  await requireAdminSessionOrRedirect();
 
   const input = categoriaSchema.parse({
     nome: formData.get("nome"),

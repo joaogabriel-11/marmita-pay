@@ -12,6 +12,7 @@ import {
   zonaEntregaRepository,
 } from "@/lib/repositories";
 import { addMinutes, getTodayDateOnlyInSaoPaulo } from "@/lib/utils/dates";
+import { formatMoney } from "@/lib/utils/money";
 import { checkoutSchema, type CheckoutInput } from "@/lib/validations";
 import { calcularTaxaEntrega } from "./calcular-taxa-entrega";
 import {
@@ -90,7 +91,7 @@ export async function criarPedidoComPix(
   if (configuracao.pedidoMinimo && subtotal.lt(configuracao.pedidoMinimo)) {
     throw new DomainError(
       "PEDIDO_MINIMO_NAO_ATINGIDO",
-      "O pedido nao atingiu o valor minimo.",
+      `Pedido minimo de ${formatMoney(configuracao.pedidoMinimo)}.`,
     );
   }
 
