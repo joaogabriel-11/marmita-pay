@@ -14,6 +14,12 @@ export function PublicShell({ children }: PublicShellProps) {
           </Link>
           <nav className="flex items-center gap-2 text-sm">
             <Link
+              href="/pedidos"
+              className="rounded-md px-3 py-2 text-zinc-700 hover:bg-zinc-100"
+            >
+              Pedidos
+            </Link>
+            <Link
               href="/cardapio"
               className="rounded-md px-3 py-2 text-zinc-700 hover:bg-zinc-100"
             >

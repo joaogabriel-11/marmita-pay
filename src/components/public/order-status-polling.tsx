@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { rememberOrder } from "./orders-store";
 
 type OrderStatusPollingProps = {
   codigoPedido: number;
@@ -15,7 +16,7 @@ type PedidoStatusResponse = {
   pagamentoStatus: string | null;
 };
 
-const finalStatuses = new Set(["CONFIRMADO", "EXPIRADO", "CANCELADO"]);
+const finalStatuses = new Set(["EXPIRADO", "CANCELADO", "ENTREGUE", "RETIRADO"]);
 
 const pagamentoStatusLabels: Record<string, string> = {
   PENDENTE: "Aguardando",
@@ -42,6 +43,10 @@ export function OrderStatusPolling({
   const [pagamentoStatus, setPagamentoStatus] = useState<string | null>(
     initialPagamentoStatus,
   );
+
+  useEffect(() => {
+    rememberOrder(codigoPedido);
+  }, [codigoPedido]);
 
   useEffect(() => {
     if (finalStatuses.has(status)) {

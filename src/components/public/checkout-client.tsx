@@ -8,6 +8,7 @@ import {
   useCart,
   writeCart,
 } from "./cart-store";
+import { rememberOrder } from "./orders-store";
 
 type ZonaEntregaOption = {
   id: string;
@@ -71,6 +72,7 @@ export function CheckoutClient({
       return;
     }
 
+    rememberOrder(state.codigoPedido);
     router.replace(`/pedido/${state.codigoPedido}`);
     window.setTimeout(() => writeCart([]), 0);
   }, [router, state]);
