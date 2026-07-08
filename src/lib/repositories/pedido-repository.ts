@@ -15,7 +15,6 @@ const pedidoCompletoInclude = {
     },
   },
   pagamento: true,
-  zonaEntrega: true,
 } satisfies Prisma.PedidoInclude;
 
 export function createPedidoRepository(db: DbClient = prisma) {

@@ -9,7 +9,6 @@ import {
   createPagamentoRepository,
   createPedidoRepository,
   pedidoRepository,
-  zonaEntregaRepository,
 } from "@/lib/repositories";
 import { addMinutes, getTodayDateOnlyInSaoPaulo } from "@/lib/utils/dates";
 import { formatMoney } from "@/lib/utils/money";
@@ -69,12 +68,9 @@ export async function criarPedidoComPix(
   assertTipoEntregaPermitido(configuracao.modoEntrega, checkout.tipoEntrega);
 
   const cardapioDiaIds = checkout.itens.map((item) => item.cardapioDiaId);
-  const [cardapios, reservasAtivas, zonaEntrega] = await Promise.all([
+  const [cardapios, reservasAtivas] = await Promise.all([
     cardapioRepository.findManyByIds(cardapioDiaIds),
     pedidoRepository.listReservasAtivas(cardapioDiaIds, agora),
-    checkout.zonaEntregaId
-      ? zonaEntregaRepository.findById(checkout.zonaEntregaId)
-      : Promise.resolve(null),
   ]);
 
   const reservas = mapearReservasAtivas(reservasAtivas);
@@ -83,7 +79,6 @@ export async function criarPedidoComPix(
   const subtotal = somarItensPedido(checkout.itens, cardapios);
   const taxaEntrega = calcularTaxaEntrega({
     tipoEntrega: checkout.tipoEntrega,
-    zonaEntrega,
     configuracao,
   });
   const valorTotal = subtotal.plus(taxaEntrega);
@@ -122,13 +117,14 @@ export async function criarPedidoComPix(
         clienteTelefone: checkout.clienteTelefone,
         clienteEmail: checkout.clienteEmail,
         tipoEntrega: checkout.tipoEntrega,
+        enderecoCep: checkout.enderecoCep,
         enderecoRua: checkout.enderecoRua,
         enderecoNumero: checkout.enderecoNumero,
         enderecoBairro: checkout.enderecoBairro,
+        enderecoCidade: checkout.enderecoCidade,
+        enderecoEstado: checkout.enderecoEstado,
+        enderecoUf: checkout.enderecoUf,
         enderecoComplemento: checkout.enderecoComplemento,
-        zonaEntrega: checkout.zonaEntregaId
-          ? { connect: { id: checkout.zonaEntregaId } }
-          : undefined,
         taxaEntrega,
         valorTotal,
         dataEntregaOuRetirada,

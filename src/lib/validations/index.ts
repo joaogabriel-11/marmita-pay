@@ -5,4 +5,3 @@ export * from "./common";
 export * from "./configuracao-schema";
 export * from "./pedido-status-schema";
 export * from "./prato-schema";
-export * from "./zona-entrega-schema";

@@ -10,13 +10,6 @@ import {
 } from "./cart-store";
 import { rememberOrder } from "./orders-store";
 
-type ZonaEntregaOption = {
-  id: string;
-  nome: string;
-  taxaEntrega: string;
-  taxaEntregaFormatada: string;
-};
-
 type CheckoutActionState =
   | {
       success: false;
@@ -28,7 +21,6 @@ type CheckoutActionState =
     };
 
 type CheckoutClientProps = {
-  zonasEntrega: ZonaEntregaOption[];
   pedidoMinimo: string | null;
   action: (
     state: CheckoutActionState,
@@ -37,8 +29,30 @@ type CheckoutClientProps = {
   initialState: CheckoutActionState;
 };
 
+type EnderecoCepResponse = {
+  cep: string;
+  logradouro: string;
+  bairro: string;
+  localidade: string;
+  estado: string;
+  uf: string;
+};
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function formatCep(value: string) {
+  const digits = onlyDigits(value).slice(0, 8);
+
+  if (digits.length <= 5) {
+    return digits;
+  }
+
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+}
+
 export function CheckoutClient({
-  zonasEntrega,
   pedidoMinimo,
   action,
   initialState,
@@ -49,6 +63,16 @@ export function CheckoutClient({
   const [tipoEntrega, setTipoEntrega] = useState<"DELIVERY" | "RETIRADA">(
     "RETIRADA",
   );
+  const [enderecoCep, setEnderecoCep] = useState("");
+  const [enderecoRua, setEnderecoRua] = useState("");
+  const [enderecoBairro, setEnderecoBairro] = useState("");
+  const [enderecoCidade, setEnderecoCidade] = useState("");
+  const [enderecoEstado, setEnderecoEstado] = useState("");
+  const [enderecoUf, setEnderecoUf] = useState("");
+  const [cepStatus, setCepStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [cepMessage, setCepMessage] = useState("");
 
   const subtotal = useMemo(
     () =>
@@ -81,6 +105,50 @@ export function CheckoutClient({
     router.replace(`/pedido/${state.codigoPedido}`);
     window.setTimeout(() => writeCart([]), 0);
   }, [router, state]);
+
+  async function buscarEnderecoPorCep() {
+    const cepDigits = onlyDigits(enderecoCep);
+
+    if (cepDigits.length === 0) {
+      setCepStatus("idle");
+      setCepMessage("");
+      return;
+    }
+
+    if (cepDigits.length !== 8) {
+      setCepStatus("error");
+      setCepMessage("Informe um CEP com 8 numeros.");
+      return;
+    }
+
+    setCepStatus("loading");
+    setCepMessage("Buscando endereco...");
+
+    try {
+      const response = await fetch(`/api/cep?cep=${cepDigits}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        setCepStatus("error");
+        setCepMessage(data?.error?.message ?? "Nao foi possivel buscar o CEP.");
+        return;
+      }
+
+      const endereco = data as EnderecoCepResponse;
+
+      setEnderecoCep(endereco.cep);
+      setEnderecoRua(endereco.logradouro);
+      setEnderecoBairro(endereco.bairro);
+      setEnderecoCidade(endereco.localidade);
+      setEnderecoEstado(endereco.estado);
+      setEnderecoUf(endereco.uf);
+      setCepStatus("success");
+      setCepMessage("Endereco preenchido pelo CEP.");
+    } catch {
+      setCepStatus("error");
+      setCepMessage("Nao foi possivel buscar o CEP agora.");
+    }
+  }
 
   if (state.success) {
     return (
@@ -195,10 +263,35 @@ export function CheckoutClient({
         {tipoEntrega === "DELIVERY" ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1 text-sm sm:col-span-2">
+              <span className="font-medium">CEP</span>
+              <input
+                name="enderecoCep"
+                value={enderecoCep}
+                onBlur={buscarEnderecoPorCep}
+                onChange={(event) => setEnderecoCep(formatCep(event.target.value))}
+                inputMode="numeric"
+                placeholder="00000-000"
+                className="w-full rounded-md border border-zinc-300 px-3 py-2"
+                required
+              />
+              {cepMessage ? (
+                <span
+                  className={`block text-xs ${
+                    cepStatus === "error" ? "text-red-700" : "text-zinc-500"
+                  }`}
+                >
+                  {cepMessage}
+                </span>
+              ) : null}
+            </label>
+            <label className="space-y-1 text-sm sm:col-span-2">
               <span className="font-medium">Rua</span>
               <input
                 name="enderecoRua"
+                value={enderecoRua}
+                onChange={(event) => setEnderecoRua(event.target.value)}
                 className="w-full rounded-md border border-zinc-300 px-3 py-2"
+                required
               />
             </label>
             <label className="space-y-1 text-sm">
@@ -212,29 +305,39 @@ export function CheckoutClient({
               <span className="font-medium">Bairro</span>
               <input
                 name="enderecoBairro"
+                value={enderecoBairro}
+                onChange={(event) => setEnderecoBairro(event.target.value)}
                 className="w-full rounded-md border border-zinc-300 px-3 py-2"
+                required
               />
             </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium">Cidade</span>
+              <input
+                name="enderecoCidade"
+                value={enderecoCidade}
+                onChange={(event) => setEnderecoCidade(event.target.value)}
+                className="w-full rounded-md border border-zinc-300 px-3 py-2"
+                required
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium">Estado</span>
+              <input
+                name="enderecoEstado"
+                value={enderecoEstado}
+                onChange={(event) => setEnderecoEstado(event.target.value)}
+                className="w-full rounded-md border border-zinc-300 px-3 py-2"
+                required
+              />
+            </label>
+            <input type="hidden" name="enderecoUf" value={enderecoUf} />
             <label className="space-y-1 text-sm sm:col-span-2">
               <span className="font-medium">Complemento</span>
               <input
                 name="enderecoComplemento"
                 className="w-full rounded-md border border-zinc-300 px-3 py-2"
               />
-            </label>
-            <label className="space-y-1 text-sm sm:col-span-2">
-              <span className="font-medium">Zona de entrega</span>
-              <select
-                name="zonaEntregaId"
-                className="w-full rounded-md border border-zinc-300 px-3 py-2"
-              >
-                <option value="">Selecione uma zona</option>
-                {zonasEntrega.map((zona) => (
-                  <option key={zona.id} value={zona.id}>
-                    {zona.nome} - {zona.taxaEntregaFormatada}
-                  </option>
-                ))}
-              </select>
             </label>
           </div>
         ) : null}

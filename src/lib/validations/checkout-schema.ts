@@ -22,11 +22,14 @@ export const checkoutSchema = z
     clienteTelefone: phoneSchema,
     clienteEmail: emailSchema,
     tipoEntrega: tipoEntregaPedidoSchema,
+    enderecoCep: optionalTextSchema,
     enderecoRua: optionalTextSchema,
     enderecoNumero: optionalTextSchema,
     enderecoBairro: optionalTextSchema,
+    enderecoCidade: optionalTextSchema,
+    enderecoEstado: optionalTextSchema,
+    enderecoUf: optionalTextSchema,
     enderecoComplemento: optionalTextSchema,
-    zonaEntregaId: idSchema.optional(),
     itens: z
       .array(checkoutItemSchema)
       .min(1, "Inclua pelo menos um item no pedido."),
@@ -37,10 +40,12 @@ export const checkoutSchema = z
     }
 
     const camposObrigatorios = [
+      ["enderecoCep", input.enderecoCep],
       ["enderecoRua", input.enderecoRua],
       ["enderecoNumero", input.enderecoNumero],
       ["enderecoBairro", input.enderecoBairro],
-      ["zonaEntregaId", input.zonaEntregaId],
+      ["enderecoCidade", input.enderecoCidade],
+      ["enderecoEstado", input.enderecoEstado],
     ] as const;
 
     for (const [campo, valor] of camposObrigatorios) {

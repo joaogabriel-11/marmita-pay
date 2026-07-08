@@ -182,26 +182,6 @@ model CardapioDia {
 }
 
 // =======================
-// ZONAS DE ENTREGA
-// Ex: Centro, Zona Norte, Bairro X
-// =======================
-
-model ZonaEntrega {
-  id          String  @id @default(cuid())
-  nome        String
-  taxaEntrega Decimal @db.Decimal(10, 2)
-  ativo       Boolean @default(true)
-
-  pedidos Pedido[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([ativo])
-  @@map("zonas_entrega")
-}
-
-// =======================
 // PEDIDOS
 // Cliente não tem login no MVP.
 // Dados do cliente ficam embutidos no pedido.
@@ -219,13 +199,14 @@ model Pedido {
   // Entrega ou retirada
   tipoEntrega TipoEntregaPedido
 
+  enderecoCep         String?
   enderecoRua         String?
   enderecoNumero      String?
   enderecoBairro      String?
+  enderecoCidade      String?
+  enderecoEstado      String?
+  enderecoUf          String?
   enderecoComplemento String?
-
-  zonaEntregaId String?
-  zonaEntrega   ZonaEntrega? @relation(fields: [zonaEntregaId], references: [id])
 
   taxaEntrega Decimal @default(0) @db.Decimal(10, 2)
   valorTotal  Decimal @db.Decimal(10, 2)

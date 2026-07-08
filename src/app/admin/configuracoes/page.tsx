@@ -1,14 +1,6 @@
-import {
-  atualizarZonaEntregaAction,
-  criarZonaEntregaAction,
-  desativarZonaEntregaAction,
-  salvarConfiguracoesAction,
-} from "@/app/admin/configuracoes/actions";
+import { salvarConfiguracoesAction } from "@/app/admin/configuracoes/actions";
 import { EnderecoRestauranteFields } from "@/components/admin/endereco-restaurante-fields";
-import {
-  configuracaoRepository,
-  zonaEntregaRepository,
-} from "@/lib/repositories";
+import { configuracaoRepository } from "@/lib/repositories";
 
 export const dynamic = "force-dynamic";
 
@@ -33,13 +25,6 @@ type ConfiguracaoAdmin = {
   enderecoUf: string | null;
 };
 
-type ZonaEntregaAdmin = {
-  id: string;
-  nome: string;
-  taxaEntrega: { toString(): string };
-  ativo: boolean;
-};
-
 const configuracaoPadrao: ConfiguracaoAdmin = {
   nomeRestaurante: "Marmita Pay",
   modoEntrega: "AMBOS",
@@ -62,14 +47,10 @@ const configuracaoPadrao: ConfiguracaoAdmin = {
 };
 
 export default async function AdminConfiguracoesPage() {
-  const [configuracaoBanco, zonasBanco] = await Promise.all([
-    configuracaoRepository.get(),
-    zonaEntregaRepository.list(),
-  ]);
+  const configuracaoBanco = await configuracaoRepository.get();
 
   const configuracao = (configuracaoBanco ??
     configuracaoPadrao) as ConfiguracaoAdmin;
-  const zonas = zonasBanco as ZonaEntregaAdmin[];
 
   return (
     <div className="space-y-5">
@@ -199,76 +180,6 @@ export default async function AdminConfiguracoesPage() {
             Salvar configuracoes
           </button>
         </form>
-      </section>
-
-      <section className="rounded-lg border border-zinc-200 bg-white p-4">
-        <h2 className="font-semibold">Zonas de entrega</h2>
-        <form action={criarZonaEntregaAction} className="mt-4 flex flex-wrap gap-3">
-          <input
-            name="nome"
-            placeholder="Bairro ou regiao"
-            className="min-w-56 rounded-md border border-zinc-300 px-3 py-2 text-sm"
-            required
-          />
-          <input
-            name="taxaEntrega"
-            placeholder="Taxa"
-            inputMode="decimal"
-            className="w-32 rounded-md border border-zinc-300 px-3 py-2 text-sm"
-            required
-          />
-          <button className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium">
-            Criar zona
-          </button>
-        </form>
-
-        <div className="mt-4 space-y-3">
-          {zonas.map((zona) => (
-            <article
-              key={zona.id}
-              className={`rounded-lg border border-zinc-200 p-3 ${
-                zona.ativo ? "" : "opacity-60"
-              }`}
-            >
-              <form
-                action={atualizarZonaEntregaAction}
-                className="flex flex-wrap items-center gap-3"
-              >
-                <input type="hidden" name="id" value={zona.id} />
-                <input
-                  name="nome"
-                  defaultValue={zona.nome}
-                  className="min-w-56 rounded-md border border-zinc-300 px-3 py-2 text-sm"
-                  required
-                />
-                <input
-                  name="taxaEntrega"
-                  defaultValue={zona.taxaEntrega.toString()}
-                  inputMode="decimal"
-                  className="w-32 rounded-md border border-zinc-300 px-3 py-2 text-sm"
-                  required
-                />
-                <label className="inline-flex items-center gap-2 text-sm">
-                  <input
-                    name="ativo"
-                    type="checkbox"
-                    defaultChecked={zona.ativo}
-                  />
-                  Ativa
-                </label>
-                <button className="rounded-md bg-zinc-950 px-3 py-2 text-sm font-medium text-white">
-                  Salvar
-                </button>
-              </form>
-              <form action={desativarZonaEntregaAction} className="mt-2">
-                <input type="hidden" name="id" value={zona.id} />
-                <button className="rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-700">
-                  Desativar zona
-                </button>
-              </form>
-            </article>
-          ))}
-        </div>
       </section>
     </div>
   );

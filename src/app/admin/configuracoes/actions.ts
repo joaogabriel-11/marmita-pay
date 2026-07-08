@@ -1,17 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { requireAdminSessionOrRedirect } from "@/lib/auth/permissions";
-import {
-  configuracaoRepository,
-  zonaEntregaRepository,
-} from "@/lib/repositories";
+import { configuracaoRepository } from "@/lib/repositories";
 import { buscarCoordenadasEndereco } from "@/lib/services";
-import {
-  configuracaoSchema,
-  zonaEntregaSchema,
-} from "@/lib/validations";
+import { configuracaoSchema } from "@/lib/validations";
 
 function getBoolean(formData: FormData, key: string) {
   return formData.get(key) === "on";
@@ -94,46 +87,5 @@ export async function salvarConfiguracoesAction(formData: FormData) {
 
   revalidatePath("/admin/configuracoes");
   revalidatePath("/cardapio");
-  revalidatePath("/checkout");
-}
-
-export async function criarZonaEntregaAction(formData: FormData) {
-  await requireAdminSessionOrRedirect();
-
-  const input = zonaEntregaSchema.parse({
-    nome: formData.get("nome"),
-    taxaEntrega: formData.get("taxaEntrega"),
-    ativo: true,
-  });
-
-  await zonaEntregaRepository.create(input);
-
-  revalidatePath("/admin/configuracoes");
-  revalidatePath("/checkout");
-}
-
-export async function atualizarZonaEntregaAction(formData: FormData) {
-  await requireAdminSessionOrRedirect();
-
-  const id = z.string().min(1).parse(formData.get("id"));
-  const input = zonaEntregaSchema.parse({
-    nome: formData.get("nome"),
-    taxaEntrega: formData.get("taxaEntrega"),
-    ativo: getBoolean(formData, "ativo"),
-  });
-
-  await zonaEntregaRepository.update(id, input);
-
-  revalidatePath("/admin/configuracoes");
-  revalidatePath("/checkout");
-}
-
-export async function desativarZonaEntregaAction(formData: FormData) {
-  await requireAdminSessionOrRedirect();
-
-  const id = z.string().min(1).parse(formData.get("id"));
-  await zonaEntregaRepository.deactivate(id);
-
-  revalidatePath("/admin/configuracoes");
   revalidatePath("/checkout");
 }

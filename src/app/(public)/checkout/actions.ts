@@ -52,11 +52,14 @@ export async function finalizarCheckoutAction(
       clienteTelefone: getFormString(formData, "clienteTelefone") ?? "",
       clienteEmail: getFormString(formData, "clienteEmail"),
       tipoEntrega,
+      enderecoCep: getFormString(formData, "enderecoCep"),
       enderecoRua: getFormString(formData, "enderecoRua"),
       enderecoNumero: getFormString(formData, "enderecoNumero"),
       enderecoBairro: getFormString(formData, "enderecoBairro"),
+      enderecoCidade: getFormString(formData, "enderecoCidade"),
+      enderecoEstado: getFormString(formData, "enderecoEstado"),
+      enderecoUf: getFormString(formData, "enderecoUf"),
       enderecoComplemento: getFormString(formData, "enderecoComplemento"),
-      zonaEntregaId: getFormString(formData, "zonaEntregaId"),
       itens: parseItens(formData),
     };
 

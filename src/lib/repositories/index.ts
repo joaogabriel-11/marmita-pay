@@ -6,4 +6,3 @@ export * from "./pagamento-repository";
 export * from "./pedido-repository";
 export * from "./prato-repository";
 export * from "./types";
-export * from "./zona-entrega-repository";
