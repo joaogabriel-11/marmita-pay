@@ -26,6 +26,14 @@ export const configuracaoSchema = z.object({
   tempoPreparoMinutos: positiveIntSchema.optional(),
   tempoEntregaMinutos: positiveIntSchema.optional(),
   whatsappContato: phoneSchema.optional().or(z.literal("").transform(() => undefined)),
+  enderecoCep: optionalTextSchema,
+  enderecoLogradouro: optionalTextSchema,
+  enderecoNumero: optionalTextSchema,
+  enderecoComplemento: optionalTextSchema,
+  enderecoBairro: optionalTextSchema,
+  enderecoCidade: optionalTextSchema,
+  enderecoEstado: optionalTextSchema,
+  enderecoUf: optionalTextSchema,
 });
 
 export const configuracaoCreateSchema = configuracaoSchema.extend({

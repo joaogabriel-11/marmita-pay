@@ -4,6 +4,7 @@ import {
   desativarZonaEntregaAction,
   salvarConfiguracoesAction,
 } from "@/app/admin/configuracoes/actions";
+import { EnderecoRestauranteFields } from "@/components/admin/endereco-restaurante-fields";
 import {
   configuracaoRepository,
   zonaEntregaRepository,
@@ -22,6 +23,14 @@ type ConfiguracaoAdmin = {
   tempoPreparoMinutos: number | null;
   tempoEntregaMinutos: number | null;
   whatsappContato: string | null;
+  enderecoCep: string | null;
+  enderecoLogradouro: string | null;
+  enderecoNumero: string | null;
+  enderecoComplemento: string | null;
+  enderecoBairro: string | null;
+  enderecoCidade: string | null;
+  enderecoEstado: string | null;
+  enderecoUf: string | null;
 };
 
 type ZonaEntregaAdmin = {
@@ -42,6 +51,14 @@ const configuracaoPadrao: ConfiguracaoAdmin = {
   tempoPreparoMinutos: null,
   tempoEntregaMinutos: null,
   whatsappContato: null,
+  enderecoCep: null,
+  enderecoLogradouro: null,
+  enderecoNumero: null,
+  enderecoComplemento: null,
+  enderecoBairro: null,
+  enderecoCidade: null,
+  enderecoEstado: null,
+  enderecoUf: null,
 };
 
 export default async function AdminConfiguracoesPage() {
@@ -151,6 +168,16 @@ export default async function AdminConfiguracoesPage() {
               className="rounded-md border border-zinc-300 px-3 py-2 text-sm"
             />
           </label>
+          <EnderecoRestauranteFields
+            enderecoCep={configuracao.enderecoCep}
+            enderecoLogradouro={configuracao.enderecoLogradouro}
+            enderecoNumero={configuracao.enderecoNumero}
+            enderecoComplemento={configuracao.enderecoComplemento}
+            enderecoBairro={configuracao.enderecoBairro}
+            enderecoCidade={configuracao.enderecoCidade}
+            enderecoEstado={configuracao.enderecoEstado}
+            enderecoUf={configuracao.enderecoUf}
+          />
           <label className="inline-flex items-center gap-2 text-sm font-medium lg:col-span-2">
             <input
               name="pedidosAtivos"

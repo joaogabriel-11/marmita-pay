@@ -30,6 +30,14 @@ export async function salvarConfiguracoesAction(formData: FormData) {
     tempoPreparoMinutos: formData.get("tempoPreparoMinutos") || undefined,
     tempoEntregaMinutos: formData.get("tempoEntregaMinutos") || undefined,
     whatsappContato: formData.get("whatsappContato"),
+    enderecoCep: formData.get("enderecoCep"),
+    enderecoLogradouro: formData.get("enderecoLogradouro"),
+    enderecoNumero: formData.get("enderecoNumero"),
+    enderecoComplemento: formData.get("enderecoComplemento"),
+    enderecoBairro: formData.get("enderecoBairro"),
+    enderecoCidade: formData.get("enderecoCidade"),
+    enderecoEstado: formData.get("enderecoEstado"),
+    enderecoUf: formData.get("enderecoUf"),
   });
 
   await configuracaoRepository.upsert({
@@ -44,6 +52,14 @@ export async function salvarConfiguracoesAction(formData: FormData) {
     tempoPreparoMinutos: input.tempoPreparoMinutos,
     tempoEntregaMinutos: input.tempoEntregaMinutos,
     whatsappContato: input.whatsappContato,
+    enderecoCep: input.enderecoCep,
+    enderecoLogradouro: input.enderecoLogradouro,
+    enderecoNumero: input.enderecoNumero,
+    enderecoComplemento: input.enderecoComplemento,
+    enderecoBairro: input.enderecoBairro,
+    enderecoCidade: input.enderecoCidade,
+    enderecoEstado: input.enderecoEstado,
+    enderecoUf: input.enderecoUf,
   });
 
   revalidatePath("/admin/configuracoes");
