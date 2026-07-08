@@ -1,4 +1,5 @@
 export * from "./atualizar-status-pedido";
+export * from "./buscar-cep";
 export * from "./calcular-taxa-entrega";
 export * from "./criar-pedido-com-pix";
 export * from "./expirar-pedidos-pendentes";
