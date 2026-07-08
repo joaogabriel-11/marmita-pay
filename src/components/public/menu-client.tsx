@@ -91,9 +91,7 @@ export function MenuClient({ itens, aberto }: MenuClientProps) {
                         {item.descricao}
                       </p>
                       <div className="mt-3 inline-flex rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600">
-                        {item.esgotado
-                          ? "Esgotado"
-                          : `${item.disponivelReal} disponíveis`}
+                        {item.esgotado ? "Indisponivel" : "Disponivel"}
                       </div>
                     </div>
                     <div className="mt-5 flex items-center justify-between gap-3">
@@ -106,7 +104,7 @@ export function MenuClient({ itens, aberto }: MenuClientProps) {
                         onClick={() => adicionarItem(item)}
                         className="rounded-md bg-zinc-950 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600"
                       >
-                        Adicionar
+                        {item.esgotado ? "Indisponivel" : "Adicionar"}
                       </button>
                     </div>
                   </div>

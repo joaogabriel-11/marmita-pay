@@ -63,9 +63,23 @@ export async function listarCardapioPublico(
   const cardapios = await cardapioRepository.listByDate(data, {
     somenteAtivos: true,
   });
+  const cardapiosPorPrato = new Map<string, (typeof cardapios)[number]>();
+
+  for (const cardapio of cardapios) {
+    const cardapioAtual = cardapiosPorPrato.get(cardapio.pratoId);
+    const cardapioDaData = cardapio.data.getTime() === data.getTime();
+    const cardapioAtualDaData =
+      cardapioAtual?.data.getTime() === data.getTime();
+
+    if (!cardapioAtual || cardapioDaData || !cardapioAtualDaData) {
+      cardapiosPorPrato.set(cardapio.pratoId, cardapio);
+    }
+  }
+
+  const cardapiosVisiveis = Array.from(cardapiosPorPrato.values());
   const reservas = mapearReservasAtivas(
     await pedidoRepository.listReservasAtivas(
-      cardapios.map((cardapio) => cardapio.id),
+      cardapiosVisiveis.map((cardapio) => cardapio.id),
       agora,
     ),
   );
@@ -95,7 +109,7 @@ export async function listarCardapioPublico(
           ? "Pedidos encerrados por hoje. Volte amanha para conferir o novo cardapio."
           : null,
     },
-    itens: cardapios.map((cardapio) => {
+    itens: cardapiosVisiveis.map((cardapio) => {
       const disponibilidade = calcularDisponibilidadeReal(
         cardapio,
         reservasPorCardapio.get(cardapio.id) ?? 0,

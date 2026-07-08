@@ -28,16 +28,24 @@ export function createCardapioRepository(db: DbClient = prisma) {
     listByDate(data: Date, params?: { somenteAtivos?: boolean }) {
       return db.cardapioDia.findMany({
         where: {
-          data,
+          OR: [{ data }, { permanente: true }],
           ativo: params?.somenteAtivos ? true : undefined,
         },
         include: { prato: { include: { categoria: true } } },
         orderBy: [
           { destaque: "desc" },
+          { permanente: "desc" },
           { ordem: "asc" },
           { prato: { categoria: { ordem: "asc" } } },
           { prato: { nome: "asc" } },
         ],
+      });
+    },
+
+    findPermanentByPrato(pratoId: string) {
+      return db.cardapioDia.findFirst({
+        where: { pratoId, permanente: true },
+        include: { prato: { include: { categoria: true } } },
       });
     },
 

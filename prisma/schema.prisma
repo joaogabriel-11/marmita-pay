@@ -154,6 +154,7 @@ model CardapioDia {
 
   ativo    Boolean @default(true)
   destaque Boolean @default(false)
+  permanente Boolean @default(false)
   ordem    Int     @default(0)
 
   itensPedido ItemPedido[]
@@ -165,6 +166,7 @@ model CardapioDia {
   @@index([data])
   @@index([ativo])
   @@index([destaque])
+  @@index([permanente])
   @@map("cardapios_dia")
 }
 
