@@ -3,9 +3,11 @@ import { DomainError } from "@/lib/core/domain-error";
 import prisma from "@/lib/prisma";
 import {
   createCardapioRepository,
+  createNotificacaoAdminRepository,
   createPagamentoRepository,
   createPedidoRepository,
   pagamentoRepository,
+  TIPO_NOTIFICACAO_ADMIN,
 } from "@/lib/repositories";
 
 export type PagamentoGatewayConfirmado = {
@@ -56,6 +58,7 @@ export async function processarWebhookPagamento(
       const pagamentos = createPagamentoRepository(tx);
       const pedidos = createPedidoRepository(tx);
       const cardapios = createCardapioRepository(tx);
+      const notificacoes = createNotificacaoAdminRepository(tx);
 
       const pagamentoAtualizado = await pagamentos.approvePending(pagamento.id, {
         status: "APROVADO",
@@ -86,6 +89,14 @@ export async function processarWebhookPagamento(
           ),
         ),
       );
+
+      await notificacoes.create({
+        tipo: TIPO_NOTIFICACAO_ADMIN.PAGAMENTO_APROVADO,
+        titulo: "Pagamento aprovado",
+        mensagem: `Pedido #${pedidoCompleto.codigoPedido} foi pago`,
+        pedidoId: pedidoCompleto.id,
+        codigoPedido: pedidoCompleto.codigoPedido,
+      });
 
       return { processado: true };
     },

@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  NotificationToast,
+  type NotificationToastState,
+} from "@/components/ui/notification-toast";
+import { playNotificationSound } from "@/lib/utils/notification-sound";
 import { rememberOrder } from "./orders-store";
 
 type OrderStatusPollingProps = {
@@ -43,6 +48,8 @@ export function OrderStatusPolling({
   const [pagamentoStatus, setPagamentoStatus] = useState<string | null>(
     initialPagamentoStatus,
   );
+  const [notification, setNotification] =
+    useState<NotificationToastState | null>(null);
 
   useEffect(() => {
     rememberOrder(codigoPedido);
@@ -64,27 +71,46 @@ export function OrderStatusPolling({
       }
 
       const data = (await response.json()) as PedidoStatusResponse;
+      const pagamentoAprovadoAgora =
+        pagamentoStatus !== "APROVADO" && data.pagamentoStatus === "APROVADO";
+
+      if (pagamentoAprovadoAgora) {
+        playNotificationSound("payment-approved");
+        setNotification({
+          id: Date.now(),
+          title: "Pagamento aprovado",
+          message: "Seu pedido foi confirmado pelo restaurante.",
+          tone: "success",
+        });
+      }
+
       setStatus(data.status);
       setStatusLabel(data.statusLabel);
       setPagamentoStatus(data.pagamentoStatus);
     }, 3000);
 
     return () => window.clearInterval(intervalId);
-  }, [codigoPedido, status]);
+  }, [codigoPedido, pagamentoStatus, status]);
 
   return (
-    <div className="mt-4 rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-800">
-      {statusLabel}
-      {pagamentoStatus ? (
-        <span
-          className={`ml-2 inline-flex rounded-md px-2 py-1 text-xs font-medium ring-1 ${
-            pagamentoStatusClasses[pagamentoStatus] ??
-            "bg-zinc-50 text-zinc-600 ring-zinc-200"
-          }`}
-        >
-          Pagamento: {pagamentoStatusLabels[pagamentoStatus] ?? pagamentoStatus}
-        </span>
-      ) : null}
-    </div>
+    <>
+      <NotificationToast
+        notification={notification}
+        onClose={() => setNotification(null)}
+      />
+      <div className="mt-4 rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-800">
+        {statusLabel}
+        {pagamentoStatus ? (
+          <span
+            className={`ml-2 inline-flex rounded-md px-2 py-1 text-xs font-medium ring-1 ${
+              pagamentoStatusClasses[pagamentoStatus] ??
+              "bg-zinc-50 text-zinc-600 ring-zinc-200"
+            }`}
+          >
+            Pagamento: {pagamentoStatusLabels[pagamentoStatus] ?? pagamentoStatus}
+          </span>
+        ) : null}
+      </div>
+    </>
   );
 }

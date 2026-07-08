@@ -295,3 +295,27 @@ model Pagamento {
   @@index([pedidoId])
   @@map("pagamentos")
 }
+
+// =======================
+// NOTIFICACOES DO ADMIN
+// Eventos simples para avisos em tempo real no painel.
+// =======================
+
+model NotificacaoAdmin {
+  id String @id @default(cuid())
+
+  tipo     String
+  titulo   String
+  mensagem String
+
+  pedidoId     String?
+  codigoPedido Int?
+
+  lida Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([tipo])
+  @@index([createdAt])
+  @@map("notificacoes_admin")
+}

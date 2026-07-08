@@ -2,6 +2,7 @@ export * from "./admin-repository";
 export * from "./cardapio-repository";
 export * from "./categoria-repository";
 export * from "./configuracao-repository";
+export * from "./notificacao-admin-repository";
 export * from "./pagamento-repository";
 export * from "./pedido-repository";
 export * from "./prato-repository";

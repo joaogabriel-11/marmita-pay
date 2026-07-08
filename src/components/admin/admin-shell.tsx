@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { logoutAdminAction } from "@/app/admin/login/actions";
+import { AdminRealtimeNotifications } from "@/components/admin/admin-realtime-notifications";
 import type { AdminSession } from "@/lib/auth/auth";
 
 type AdminShellProps = {
@@ -20,6 +21,11 @@ type NavItem = (typeof navItems)[number];
 export function AdminShell({ session, children }: AdminShellProps) {
   return (
     <main className="min-h-screen bg-zinc-50 text-zinc-950">
+      <AdminRealtimeNotifications
+        supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}
+        supabaseAnonKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ""}
+        restauranteId={null}
+      />
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <div>

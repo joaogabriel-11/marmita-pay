@@ -15,7 +15,7 @@ type SupabaseRealtimeChannel = {
     config: {
       event: "INSERT" | "UPDATE";
       schema: "public";
-      table: "pedidos" | "pagamentos";
+      table: string;
       filter?: string;
     },
     callback: (payload: RealtimePayload<Record<string, unknown>>) => void,
@@ -294,8 +294,9 @@ export function AdminOrdersRealtimeTable({
         "postgres_changes",
         { event: "INSERT", ...pedidosConfig },
         (payload) => {
+          const pedidoNovo = normalizePedido(payload.new);
           setPedidos((pedidosAtuais) =>
-            upsertPedido(pedidosAtuais, normalizePedido(payload.new)),
+            upsertPedido(pedidosAtuais, pedidoNovo),
           );
         },
       )
@@ -314,15 +315,15 @@ export function AdminOrdersRealtimeTable({
         (payload) => {
           const pedidoId = String(payload.new.pedidoId ?? "");
           const status = String(payload.new.status ?? "PENDENTE");
-          setPedidos((pedidosAtuais) =>
-            sortPedidos(
+          setPedidos((pedidosAtuais) => {
+            return sortPedidos(
               pedidosAtuais.map((pedido) =>
                 pedido.id === pedidoId
                   ? { ...pedido, pagamentoStatus: status }
                   : pedido,
               ),
-            ),
-          );
+            );
+          });
         },
       )
       .on(
@@ -331,15 +332,15 @@ export function AdminOrdersRealtimeTable({
         (payload) => {
           const pedidoId = String(payload.new.pedidoId ?? "");
           const status = String(payload.new.status ?? "PENDENTE");
-          setPedidos((pedidosAtuais) =>
-            sortPedidos(
+          setPedidos((pedidosAtuais) => {
+            return sortPedidos(
               pedidosAtuais.map((pedido) =>
                 pedido.id === pedidoId
                   ? { ...pedido, pagamentoStatus: status }
                   : pedido,
               ),
-            ),
-          );
+            );
+          });
         },
       )
       .subscribe((status) => {

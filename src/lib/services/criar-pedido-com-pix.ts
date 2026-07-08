@@ -6,9 +6,11 @@ import {
   cardapioRepository,
   configuracaoRepository,
   createCardapioRepository,
+  createNotificacaoAdminRepository,
   createPagamentoRepository,
   createPedidoRepository,
   pedidoRepository,
+  TIPO_NOTIFICACAO_ADMIN,
 } from "@/lib/repositories";
 import { addMinutes, getTodayDateOnlyInSaoPaulo } from "@/lib/utils/dates";
 import { formatMoney } from "@/lib/utils/money";
@@ -115,6 +117,7 @@ export async function criarPedidoComPix(
       const pedidos = createPedidoRepository(tx);
       const pagamentos = createPagamentoRepository(tx);
       const cardapiosTx = createCardapioRepository(tx);
+      const notificacoes = createNotificacaoAdminRepository(tx);
 
       const cardapiosAtualizados =
         await cardapiosTx.findManyByIds(cardapioDiaIds);
@@ -177,6 +180,14 @@ export async function criarPedidoComPix(
         gateway: "mercadopago",
         externalReference: pedido.id,
         valorEsperado: valorTotal,
+      });
+
+      await notificacoes.create({
+        tipo: TIPO_NOTIFICACAO_ADMIN.PEDIDO_CRIADO,
+        titulo: "Novo pedido recebido",
+        mensagem: `Pedido #${pedido.codigoPedido} - ${pedido.clienteNome}`,
+        pedidoId: pedido.id,
+        codigoPedido: pedido.codigoPedido,
       });
 
       return pedido;
