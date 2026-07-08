@@ -1,6 +1,7 @@
 export * from "./atualizar-status-pedido";
 export * from "./buscar-cep";
 export * from "./buscar-coordenadas-endereco";
+export * from "./calcular-entrega-por-endereco";
 export * from "./calcular-rota-coordenadas";
 export * from "./calcular-taxa-entrega";
 export * from "./criar-pedido-com-pix";

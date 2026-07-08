@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useMemo, useState } from "react";
+import {
+  type FormEvent,
+  useActionState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   formatCurrency,
@@ -38,6 +45,13 @@ type EnderecoCepResponse = {
   uf: string;
 };
 
+type DistanciaEntregaResponse = {
+  taxaEntrega: string;
+  distanciaMetros: number;
+  duracaoSegundos: number;
+  tipoBusca: "enderecoCompleto" | "enderecoSemNumero" | "cep";
+};
+
 function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
 }
@@ -59,6 +73,7 @@ export function CheckoutClient({
 }: CheckoutClientProps) {
   const router = useRouter();
   const items = useCart();
+  const allowSubmitRef = useRef(false);
   const [state, formAction, isPending] = useActionState(action, initialState);
   const [tipoEntrega, setTipoEntrega] = useState<"DELIVERY" | "RETIRADA">(
     "RETIRADA",
@@ -73,6 +88,10 @@ export function CheckoutClient({
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [cepMessage, setCepMessage] = useState("");
+  const [distanciaEntrega, setDistanciaEntrega] =
+    useState<DistanciaEntregaResponse | null>(null);
+  const [distanciaMessage, setDistanciaMessage] = useState("");
+  const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
 
   const subtotal = useMemo(
     () =>
@@ -82,6 +101,11 @@ export function CheckoutClient({
       ),
     [items],
   );
+  const taxaEntregaValue =
+    tipoEntrega === "DELIVERY" && distanciaEntrega
+      ? Number(distanciaEntrega.taxaEntrega)
+      : 0;
+  const total = subtotal + taxaEntregaValue;
   const pedidoMinimoValue = pedidoMinimo ? Number(pedidoMinimo) : null;
   const pedidoMinimoAtingido =
     !pedidoMinimoValue || subtotal >= pedidoMinimoValue;
@@ -121,8 +145,10 @@ export function CheckoutClient({
       return;
     }
 
-    setCepStatus("loading");
-    setCepMessage("Buscando endereco...");
+      setCepStatus("loading");
+      setCepMessage("Buscando endereco...");
+      setDistanciaEntrega(null);
+      setDistanciaMessage("");
 
     try {
       const response = await fetch(`/api/cep?cep=${cepDigits}`);
@@ -148,6 +174,71 @@ export function CheckoutClient({
       setCepStatus("error");
       setCepMessage("Nao foi possivel buscar o CEP agora.");
     }
+  }
+
+  async function calcularDistanciaEntrega(formData: FormData) {
+    const response = await fetch("/api/entrega/distancia", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cep: formData.get("enderecoCep"),
+        rua: formData.get("enderecoRua"),
+        numero: formData.get("enderecoNumero"),
+        bairro: formData.get("enderecoBairro"),
+        cidade: formData.get("enderecoCidade"),
+        estado: formData.get("enderecoEstado"),
+        uf: formData.get("enderecoUf"),
+      }),
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data?.error?.message ?? "Nao foi possivel calcular a distancia.",
+      );
+    }
+
+    return data as DistanciaEntregaResponse;
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    if (tipoEntrega !== "DELIVERY" || allowSubmitRef.current) {
+      allowSubmitRef.current = false;
+      return;
+    }
+
+    event.preventDefault();
+
+    if (distanciaEntrega) {
+      allowSubmitRef.current = true;
+      event.currentTarget.requestSubmit();
+      return;
+    }
+
+    setIsCalculatingDistance(true);
+    setDistanciaMessage("Calculando distancia de entrega...");
+    setDistanciaEntrega(null);
+
+    try {
+      const formData = new FormData(event.currentTarget);
+      const distancia = await calcularDistanciaEntrega(formData);
+
+      setDistanciaEntrega(distancia);
+      setDistanciaMessage("");
+    } catch (error) {
+      setDistanciaMessage(
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel calcular a distancia.",
+      );
+    } finally {
+      setIsCalculatingDistance(false);
+    }
+  }
+
+  function invalidateDeliveryRate() {
+    setDistanciaEntrega(null);
+    setDistanciaMessage("");
   }
 
   if (state.success) {
@@ -201,6 +292,7 @@ export function CheckoutClient({
     <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
       <form
         action={formAction}
+        onSubmit={handleSubmit}
         className="space-y-4 rounded-lg border border-zinc-200 bg-white p-4"
       >
         <input type="hidden" name="itens" value={itensJson} />
@@ -247,7 +339,11 @@ export function CheckoutClient({
               <button
                 key={tipo}
                 type="button"
-                onClick={() => setTipoEntrega(tipo)}
+                onClick={() => {
+                  setTipoEntrega(tipo);
+                  setDistanciaEntrega(null);
+                  setDistanciaMessage("");
+                }}
                 className={`rounded-md border px-3 py-2 text-sm font-medium ${
                   tipoEntrega === tipo
                     ? "border-zinc-950 bg-zinc-950 text-white"
@@ -268,7 +364,10 @@ export function CheckoutClient({
                 name="enderecoCep"
                 value={enderecoCep}
                 onBlur={buscarEnderecoPorCep}
-                onChange={(event) => setEnderecoCep(formatCep(event.target.value))}
+                onChange={(event) => {
+                  invalidateDeliveryRate();
+                  setEnderecoCep(formatCep(event.target.value));
+                }}
                 inputMode="numeric"
                 placeholder="00000-000"
                 className="w-full rounded-md border border-zinc-300 px-3 py-2"
@@ -289,7 +388,10 @@ export function CheckoutClient({
               <input
                 name="enderecoRua"
                 value={enderecoRua}
-                onChange={(event) => setEnderecoRua(event.target.value)}
+                onChange={(event) => {
+                  invalidateDeliveryRate();
+                  setEnderecoRua(event.target.value);
+                }}
                 className="w-full rounded-md border border-zinc-300 px-3 py-2"
                 required
               />
@@ -298,7 +400,9 @@ export function CheckoutClient({
               <span className="font-medium">Numero</span>
               <input
                 name="enderecoNumero"
+                onChange={invalidateDeliveryRate}
                 className="w-full rounded-md border border-zinc-300 px-3 py-2"
+                required
               />
             </label>
             <label className="space-y-1 text-sm">
@@ -306,7 +410,10 @@ export function CheckoutClient({
               <input
                 name="enderecoBairro"
                 value={enderecoBairro}
-                onChange={(event) => setEnderecoBairro(event.target.value)}
+                onChange={(event) => {
+                  invalidateDeliveryRate();
+                  setEnderecoBairro(event.target.value);
+                }}
                 className="w-full rounded-md border border-zinc-300 px-3 py-2"
                 required
               />
@@ -316,7 +423,10 @@ export function CheckoutClient({
               <input
                 name="enderecoCidade"
                 value={enderecoCidade}
-                onChange={(event) => setEnderecoCidade(event.target.value)}
+                onChange={(event) => {
+                  invalidateDeliveryRate();
+                  setEnderecoCidade(event.target.value);
+                }}
                 className="w-full rounded-md border border-zinc-300 px-3 py-2"
                 required
               />
@@ -326,7 +436,10 @@ export function CheckoutClient({
               <input
                 name="enderecoEstado"
                 value={enderecoEstado}
-                onChange={(event) => setEnderecoEstado(event.target.value)}
+                onChange={(event) => {
+                  invalidateDeliveryRate();
+                  setEnderecoEstado(event.target.value);
+                }}
                 className="w-full rounded-md border border-zinc-300 px-3 py-2"
                 required
               />
@@ -348,12 +461,33 @@ export function CheckoutClient({
           </p>
         ) : null}
 
+        {distanciaMessage ? (
+          <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            {distanciaMessage}
+          </p>
+        ) : null}
+
+        {tipoEntrega === "DELIVERY" && distanciaEntrega ? (
+          <div className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            <p>
+              Taxa de entrega:{" "}
+              {formatCurrency(Number(distanciaEntrega.taxaEntrega))}
+            </p>
+          </div>
+        ) : null}
+
         <button
           type="submit"
-          disabled={isPending}
+          disabled={isPending || isCalculatingDistance}
           className="w-full rounded-md bg-zinc-950 px-4 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-zinc-400"
         >
-          {isPending ? "Gerando Pix..." : "Gerar Pix"}
+          {isPending
+            ? "Gerando Pix..."
+            : isCalculatingDistance
+              ? "Calculando entrega..."
+              : tipoEntrega === "DELIVERY" && !distanciaEntrega
+                ? "Calcular taxa de entrega"
+                : "Gerar Pix"}
         </button>
       </form>
 
@@ -372,10 +506,20 @@ export function CheckoutClient({
             </div>
           ))}
         </div>
-        <div className="mt-4 border-t border-zinc-200 pt-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Subtotal</span>
-            <strong>{formatCurrency(subtotal)}</strong>
+        <div className="mt-4">
+          {tipoEntrega === "DELIVERY" ? (
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Frete</span>
+              <strong>
+                {distanciaEntrega
+                  ? formatCurrency(Number(distanciaEntrega.taxaEntrega))
+                  : "A calcular"}
+              </strong>
+            </div>
+          ) : null}
+          <div className="mt-3 flex items-center justify-between border-t border-zinc-200 pt-3">
+            <span className="text-sm font-medium">Total</span>
+            <strong>{formatCurrency(total)}</strong>
           </div>
         </div>
       </aside>

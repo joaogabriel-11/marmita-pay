@@ -14,6 +14,7 @@ import { addMinutes, getTodayDateOnlyInSaoPaulo } from "@/lib/utils/dates";
 import { formatMoney } from "@/lib/utils/money";
 import { checkoutSchema, type CheckoutInput } from "@/lib/validations";
 import { calcularTaxaEntrega } from "./calcular-taxa-entrega";
+import { calcularEntregaPorEndereco } from "./calcular-entrega-por-endereco";
 import {
   assertItensDisponiveis,
   mapearReservasAtivas,
@@ -77,10 +78,26 @@ export async function criarPedidoComPix(
   assertItensDisponiveis(cardapios, reservas, checkout.itens);
 
   const subtotal = somarItensPedido(checkout.itens, cardapios);
-  const taxaEntrega = calcularTaxaEntrega({
-    tipoEntrega: checkout.tipoEntrega,
-    configuracao,
-  });
+  const taxaEntrega =
+    checkout.tipoEntrega === "DELIVERY"
+      ? (
+          await calcularEntregaPorEndereco({
+            restaurante: configuracao,
+            endereco: {
+              cep: checkout.enderecoCep,
+              rua: checkout.enderecoRua,
+              numero: checkout.enderecoNumero,
+              bairro: checkout.enderecoBairro,
+              cidade: checkout.enderecoCidade,
+              estado: checkout.enderecoEstado,
+              uf: checkout.enderecoUf,
+            },
+          })
+        ).taxaEntrega
+      : calcularTaxaEntrega({
+          tipoEntrega: checkout.tipoEntrega,
+          configuracao,
+        });
   const valorTotal = subtotal.plus(taxaEntrega);
 
   if (configuracao.pedidoMinimo && subtotal.lt(configuracao.pedidoMinimo)) {

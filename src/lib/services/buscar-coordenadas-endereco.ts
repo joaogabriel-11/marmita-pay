@@ -4,7 +4,13 @@ export type CoordenadasEndereco = {
   latitude: number;
   longitude: number;
   enderecoEncontrado: string;
+  tipoBusca: TipoBuscaCoordenadas;
 };
+
+export type TipoBuscaCoordenadas =
+  | "enderecoCompleto"
+  | "enderecoSemNumero"
+  | "cep";
 
 export type BuscarCoordenadasEnderecoError =
   | "ENDERECO_INVALIDO"
@@ -17,6 +23,11 @@ type NominatimSearchResponse = Array<{
   lon?: string;
   display_name?: string;
 }>;
+
+export type TentativaBuscaCoordenadas = {
+  tipoBusca: TipoBuscaCoordenadas;
+  endereco: string;
+};
 
 function normalizarEndereco(endereco: string) {
   return endereco.trim().replace(/\s+/g, " ");
@@ -33,69 +44,98 @@ function isCoordenadaValida(latitude: number, longitude: number) {
   );
 }
 
-export async function buscarCoordenadasEndereco(
-  endereco: string,
-): Promise<
-  AppResult<CoordenadasEndereco, BuscarCoordenadasEnderecoError>
-> {
-  const enderecoNormalizado = normalizarEndereco(endereco);
-
-  if (enderecoNormalizado.length < 10) {
-    return fail(
-      "ENDERECO_INVALIDO",
-      "Informe um endereco completo para buscar a localizacao.",
-    );
-  }
-
+async function buscarNoNominatim(endereco: string) {
   const searchParams = new URLSearchParams({
-    q: enderecoNormalizado,
+    q: endereco,
     format: "json",
     limit: "1",
     addressdetails: "1",
     countrycodes: "br",
   });
 
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?${searchParams.toString()}`,
-      {
-        headers: {
-          "User-Agent": "MarmitaPay/1.0",
-          Accept: "application/json",
-        },
-        next: { revalidate: 60 * 60 * 24 * 7 },
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/search?${searchParams.toString()}`,
+    {
+      headers: {
+        "User-Agent": "MarmitaPay/1.0",
+        Accept: "application/json",
       },
+      next: { revalidate: 60 * 60 * 24 * 7 },
+    },
+  );
+
+  if (!response.ok) {
+    return fail(
+      "NOMINATIM_INDISPONIVEL",
+      "Nao foi possivel consultar a localizacao agora.",
     );
+  }
 
-    if (!response.ok) {
-      return fail(
-        "NOMINATIM_INDISPONIVEL",
-        "Nao foi possivel consultar a localizacao agora.",
-      );
+  return ok((await response.json()) as NominatimSearchResponse);
+}
+
+export async function buscarCoordenadasEndereco(
+  enderecoOuTentativas: string | TentativaBuscaCoordenadas[],
+): Promise<
+  AppResult<CoordenadasEndereco, BuscarCoordenadasEnderecoError>
+> {
+  const tentativas =
+    typeof enderecoOuTentativas === "string"
+      ? [
+          {
+            tipoBusca: "enderecoCompleto" as const,
+            endereco: enderecoOuTentativas,
+          },
+        ]
+      : enderecoOuTentativas;
+  const tentativasValidas = tentativas
+    .map((tentativa) => ({
+      ...tentativa,
+      endereco: normalizarEndereco(tentativa.endereco),
+    }))
+    .filter((tentativa) => tentativa.endereco.length >= 10);
+
+  if (tentativasValidas.length === 0) {
+    return fail(
+      "ENDERECO_INVALIDO",
+      "Informe um endereco completo para buscar a localizacao.",
+    );
+  }
+
+  try {
+    for (const tentativa of tentativasValidas) {
+      const result = await buscarNoNominatim(tentativa.endereco);
+
+      if (!result.success) {
+        return result;
+      }
+
+      const enderecoEncontrado = result.data[0];
+
+      if (!enderecoEncontrado) {
+        continue;
+      }
+
+      const latitude = Number(enderecoEncontrado.lat);
+      const longitude = Number(enderecoEncontrado.lon);
+
+      if (!isCoordenadaValida(latitude, longitude)) {
+        return fail(
+          "NOMINATIM_RESPOSTA_INVALIDA",
+          "A localizacao retornada para este endereco e invalida.",
+        );
+      }
+
+      return ok({
+        latitude,
+        longitude,
+        enderecoEncontrado:
+          enderecoEncontrado.display_name ?? tentativa.endereco,
+        tipoBusca: tentativa.tipoBusca,
+      });
     }
 
-    const data = (await response.json()) as NominatimSearchResponse;
-    const enderecoEncontrado = data[0];
-
-    if (!enderecoEncontrado) {
-      return fail("ENDERECO_NAO_ENCONTRADO", "Endereco nao encontrado.");
-    }
-
-    const latitude = Number(enderecoEncontrado.lat);
-    const longitude = Number(enderecoEncontrado.lon);
-
-    if (!isCoordenadaValida(latitude, longitude)) {
-      return fail(
-        "NOMINATIM_RESPOSTA_INVALIDA",
-        "A localizacao retornada para este endereco e invalida.",
-      );
-    }
-
-    return ok({
-      latitude,
-      longitude,
-      enderecoEncontrado: enderecoEncontrado.display_name ?? enderecoNormalizado,
-    });
+    return fail("ENDERECO_NAO_ENCONTRADO", "Endereço não encontrado");
   } catch {
     return fail(
       "NOMINATIM_INDISPONIVEL",
