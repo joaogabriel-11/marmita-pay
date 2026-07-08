@@ -90,6 +90,8 @@ model ConfiguracaoRestaurante {
   enderecoCidade      String?
   enderecoEstado      String?
   enderecoUf          String?
+  latitude            Float?
+  longitude           Float?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

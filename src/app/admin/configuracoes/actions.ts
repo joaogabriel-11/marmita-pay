@@ -7,6 +7,7 @@ import {
   configuracaoRepository,
   zonaEntregaRepository,
 } from "@/lib/repositories";
+import { buscarCoordenadasEndereco } from "@/lib/services";
 import {
   configuracaoSchema,
   zonaEntregaSchema,
@@ -14,6 +15,29 @@ import {
 
 function getBoolean(formData: FormData, key: string) {
   return formData.get(key) === "on";
+}
+
+function montarEnderecoCompleto(input: {
+  enderecoLogradouro?: string;
+  enderecoNumero?: string;
+  enderecoBairro?: string;
+  enderecoCidade?: string;
+  enderecoUf?: string;
+}) {
+  const partes = [
+    input.enderecoLogradouro,
+    input.enderecoNumero,
+    input.enderecoBairro,
+    input.enderecoCidade,
+    input.enderecoUf,
+    "Brasil",
+  ];
+
+  if (partes.some((parte) => !parte || parte.trim().length === 0)) {
+    return null;
+  }
+
+  return partes.join(", ");
 }
 
 export async function salvarConfiguracoesAction(formData: FormData) {
@@ -39,6 +63,10 @@ export async function salvarConfiguracoesAction(formData: FormData) {
     enderecoEstado: formData.get("enderecoEstado"),
     enderecoUf: formData.get("enderecoUf"),
   });
+  const enderecoCompleto = montarEnderecoCompleto(input);
+  const coordenadas = enderecoCompleto
+    ? await buscarCoordenadasEndereco(enderecoCompleto)
+    : null;
 
   await configuracaoRepository.upsert({
     id: "default",
@@ -60,6 +88,8 @@ export async function salvarConfiguracoesAction(formData: FormData) {
     enderecoCidade: input.enderecoCidade,
     enderecoEstado: input.enderecoEstado,
     enderecoUf: input.enderecoUf,
+    latitude: coordenadas?.success ? coordenadas.data.latitude : null,
+    longitude: coordenadas?.success ? coordenadas.data.longitude : null,
   });
 
   revalidatePath("/admin/configuracoes");
