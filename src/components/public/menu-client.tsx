@@ -49,21 +49,21 @@ export function MenuClient({ itens, aberto }: MenuClientProps) {
   return (
     <div className="space-y-6">
       {categorias.map((categoria) => (
-        <section key={categoria} className="space-y-3">
-          <h2 className="text-base font-semibold text-zinc-800">{categoria}</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
+        <section key={categoria} className="space-y-4">
+          <h2 className="text-lg font-semibold text-zinc-900">{categoria}</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {itens
               .filter((item) => item.categoria === categoria)
               .map((item) => (
                 <article
                   key={item.id}
-                  className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm"
+                  className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                 >
                   {item.fotoUrl ? (
                     <div
                       role="img"
                       aria-label={item.nome}
-                      className="h-40 w-full object-cover"
+                      className="h-44 w-full bg-zinc-100"
                       style={{
                         backgroundImage: `url(${item.fotoUrl})`,
                         backgroundPosition: "center",
@@ -71,40 +71,40 @@ export function MenuClient({ itens, aberto }: MenuClientProps) {
                       }}
                     />
                   ) : (
-                    <div className="grid h-40 place-items-center bg-zinc-100 text-sm text-zinc-400">
+                    <div className="grid h-44 place-items-center bg-zinc-100 text-sm text-zinc-400">
                       Sem foto
                     </div>
                   )}
-                  <div className="flex min-h-44 flex-col justify-between p-4">
-                    <div className="space-y-2">
+                  <div className="flex min-h-48 flex-col justify-between p-4">
+                    <div>
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="font-semibold">{item.nome}</h3>
-                          <p className="mt-1 line-clamp-3 text-sm text-zinc-600">
-                            {item.descricao}
-                          </p>
-                        </div>
+                        <h3 className="line-clamp-1 text-base font-semibold text-zinc-950">
+                          {item.nome}
+                        </h3>
                         {item.destaque ? (
-                          <span className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-800">
+                          <span className="shrink-0 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
                             Destaque
                           </span>
                         ) : null}
                       </div>
-                      <p className="text-sm text-zinc-500">
+                      <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-zinc-600">
+                        {item.descricao}
+                      </p>
+                      <div className="mt-3 inline-flex rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600">
                         {item.esgotado
                           ? "Esgotado"
-                          : `${item.disponivelReal} disponiveis`}
-                      </p>
+                          : `${item.disponivelReal} disponíveis`}
+                      </div>
                     </div>
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <span className="font-semibold">
+                    <div className="mt-5 flex items-center justify-between gap-3">
+                      <span className="text-xl font-bold text-zinc-950">
                         {item.precoFormatado}
                       </span>
                       <button
                         type="button"
                         disabled={!aberto || item.esgotado}
                         onClick={() => adicionarItem(item)}
-                        className="rounded-md bg-zinc-950 px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600"
+                        className="rounded-md bg-zinc-950 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600"
                       >
                         Adicionar
                       </button>
