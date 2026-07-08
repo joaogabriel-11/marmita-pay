@@ -1,10 +1,35 @@
-export default function AdminPratosPage() {
+import { PratosManager } from "@/components/admin/pratos-manager";
+import {
+  categoriaRepository,
+  pratoRepository,
+} from "@/lib/repositories";
+
+export const dynamic = "force-dynamic";
+
+export default async function AdminPratosPage() {
+  const [categorias, pratos] = await Promise.all([
+    categoriaRepository.list(),
+    pratoRepository.list(),
+  ]);
+
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-5">
-      <h1 className="text-2xl font-semibold">Pratos</h1>
-      <p className="mt-2 text-sm text-zinc-600">
-        O cadastro de pratos entra na proxima etapa do painel admin.
-      </p>
-    </div>
+    <PratosManager
+      categorias={categorias.map((categoria) => ({
+        id: categoria.id,
+        nome: categoria.nome,
+        ordem: categoria.ordem,
+        ativo: categoria.ativo,
+      }))}
+      pratos={pratos.map((prato) => ({
+        id: prato.id,
+        nome: prato.nome,
+        descricao: prato.descricao,
+        fotoUrl: prato.fotoUrl,
+        precoBase: prato.precoBase.toString(),
+        ativo: prato.ativo,
+        categoriaId: prato.categoriaId,
+        categoriaNome: prato.categoria.nome,
+      }))}
+    />
   );
 }

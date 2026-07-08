@@ -36,6 +36,10 @@ export function createPratoRepository(db: DbClient = prisma) {
         data: { ativo: false },
       });
     },
+
+    delete(id: string) {
+      return db.prato.delete({ where: { id } });
+    },
   };
 }
 
