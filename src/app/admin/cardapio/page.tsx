@@ -9,7 +9,7 @@ import { formatMoney } from "@/lib/utils/money";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{ data?: string }>;
+type SearchParams = Promise<{ data?: string; saved?: string }>;
 
 type PratoCardapioAdmin = {
   id: string;
@@ -115,7 +115,10 @@ export default async function AdminCardapioPage({
         action={salvarCardapioAction}
         className="space-y-8"
       >
-        <CardapioFormBehavior formId="cardapio-admin-form" />
+        <CardapioFormBehavior
+          formId="cardapio-admin-form"
+          showSuccess={params.saved === "1"}
+        />
         <input type="hidden" name="data" value={dataSelecionada} />
 
         {categorias.map((categoria) => (

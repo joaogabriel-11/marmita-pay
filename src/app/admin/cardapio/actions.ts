@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdminSessionOrRedirect } from "@/lib/auth/permissions";
 import {
@@ -168,6 +169,15 @@ export async function salvarCardapioAction(formData: FormData) {
 
   revalidatePath("/admin/cardapio");
   revalidatePath("/cardapio");
+
+  const data = typeof dataCardapio === "string" ? dataCardapio : "";
+  const searchParams = new URLSearchParams({ saved: "1" });
+
+  if (data) {
+    searchParams.set("data", data);
+  }
+
+  redirect(`/admin/cardapio?${searchParams.toString()}`);
 }
 
 export async function removerItemCardapioAction(formData: FormData) {

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 type CardapioFormBehaviorProps = {
   formId: string;
+  showSuccess?: boolean;
 };
 
 function getPratoId(name: string, prefix: string) {
@@ -41,7 +42,22 @@ function syncDisponivel(form: HTMLFormElement, pratoId: string) {
   }
 }
 
-export function CardapioFormBehavior({ formId }: CardapioFormBehaviorProps) {
+export function CardapioFormBehavior({
+  formId,
+  showSuccess = false,
+}: CardapioFormBehaviorProps) {
+  const [isSuccessVisible, setIsSuccessVisible] = useState(showSuccess);
+
+  useEffect(() => {
+    if (!showSuccess) {
+      return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("saved");
+    window.history.replaceState(null, "", url.toString());
+  }, [showSuccess]);
+
   useEffect(() => {
     const form = document.getElementById(formId);
 
@@ -88,5 +104,30 @@ export function CardapioFormBehavior({ formId }: CardapioFormBehaviorProps) {
     };
   }, [formId]);
 
-  return null;
+  if (!isSuccessVisible) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-zinc-950/20 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-5 text-center shadow-xl">
+        <div className="mx-auto grid size-11 place-items-center rounded-full bg-emerald-50 text-2xl font-semibold text-emerald-700">
+          OK
+        </div>
+        <h2 className="mt-4 text-lg font-semibold text-zinc-950">
+          Cardapio atualizado com sucesso
+        </h2>
+        <p className="mt-2 text-sm text-zinc-600">
+          As alteracoes ja estao disponiveis para os clientes.
+        </p>
+        <button
+          type="button"
+          onClick={() => setIsSuccessVisible(false)}
+          className="mt-5 w-full rounded-md bg-zinc-950 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-800"
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  );
 }
