@@ -19,12 +19,13 @@ export async function POST(request: Request) {
       getSignedToken: async (pathname) => {
         await assertAdminSession();
 
+        const readWriteToken = process.env.BLOB_READ_WRITE_TOKEN;
         const oidcToken = process.env.VERCEL_OIDC_TOKEN;
         const storeId = process.env.BLOB_STORE_ID;
 
-        if (!oidcToken || !storeId) {
+        if (!readWriteToken && (!oidcToken || !storeId)) {
           throw new Error(
-            "Configure VERCEL_OIDC_TOKEN e BLOB_STORE_ID no .env.local.",
+            "Configure BLOB_READ_WRITE_TOKEN ou VERCEL_OIDC_TOKEN com BLOB_STORE_ID.",
           );
         }
 
@@ -35,8 +36,9 @@ export async function POST(request: Request) {
             allowedContentTypes: ALLOWED_IMAGE_TYPES,
             maximumSizeInBytes: MAX_IMAGE_SIZE_BYTES,
             validUntil: Date.now() + 5 * 60 * 1000,
-            oidcToken,
-            storeId,
+            ...(readWriteToken
+              ? { token: readWriteToken }
+              : { oidcToken, storeId }),
           }),
           urlOptions: {
             addRandomSuffix: true,
