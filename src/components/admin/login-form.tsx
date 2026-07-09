@@ -9,6 +9,7 @@ type LoginFormProps = {
 
 const initialState: LoginState = {
   message: null,
+  email: "",
 };
 
 export function LoginForm({ nextPath }: LoginFormProps) {
@@ -20,7 +21,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
   return (
     <form
       action={formAction}
-      className="mx-auto w-full max-w-sm space-y-4 rounded-lg border border-zinc-200 bg-white p-5"
+      className="mx-auto w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-5"
     >
       <input type="hidden" name="next" value={nextPath} />
       <div>
@@ -30,17 +31,18 @@ export function LoginForm({ nextPath }: LoginFormProps) {
         </p>
       </div>
 
-      <label className="space-y-1 text-sm">
+      <label className="mt-4 block space-y-1 text-sm">
         <span className="font-medium">Email</span>
         <input
           name="email"
           type="email"
+          defaultValue={state.email}
           required
           className="w-full rounded-md border border-zinc-300 px-3 py-2"
         />
       </label>
 
-      <label className="space-y-1 text-sm">
+      <label className="mt-4 block space-y-1 text-sm">
         <span className="font-medium">Senha</span>
         <input
           name="password"
@@ -51,7 +53,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       </label>
 
       {state.message ? (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
           {state.message}
         </p>
       ) : null}
@@ -59,7 +61,9 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       <button
         type="submit"
         disabled={isPending}
-        className="w-full rounded-md bg-zinc-950 px-4 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-zinc-400"
+        className={`w-full rounded-md bg-zinc-950 px-4 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-zinc-400 ${
+          state.message ? "mt-3" : "mt-4"
+        }`}
       >
         {isPending ? "Entrando..." : "Entrar"}
       </button>

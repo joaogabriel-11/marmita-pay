@@ -5,6 +5,7 @@ import { authenticateAdmin, createAdminSession } from "@/lib/auth/auth";
 
 export type LoginState = {
   message: string | null;
+  email: string;
 };
 
 function getString(formData: FormData, key: string): string {
@@ -23,7 +24,7 @@ export async function loginAdminAction(
   const admin = await authenticateAdmin({ email, password });
 
   if (!admin) {
-    return { message: "Email ou senha invalidos." };
+    return { message: "Email ou senha invalidos.", email };
   }
 
   await createAdminSession(admin);
