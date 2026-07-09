@@ -1,49 +1,18 @@
 "use client";
 
-import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 import {
   NotificationToast,
   type NotificationToastState,
 } from "@/components/ui/notification-toast";
 import {
+  createSupabaseBrowserClient,
+  type SupabaseRealtimeChannel,
+} from "@/lib/supabase/browser-client";
+import {
   playNotificationSound,
   unlockNotificationSound,
 } from "@/lib/utils/notification-sound";
-
-type RealtimePayload<T> = {
-  new: T;
-};
-
-type SupabaseRealtimeChannel = {
-  on: (
-    type: "postgres_changes",
-    config: {
-      event: "INSERT" | "UPDATE";
-      schema: "public";
-      table: string;
-      filter?: string;
-    },
-    callback: (payload: RealtimePayload<Record<string, unknown>>) => void,
-  ) => SupabaseRealtimeChannel;
-  subscribe: (callback?: (status: string) => void) => SupabaseRealtimeChannel;
-};
-
-type SupabaseBrowserClient = {
-  channel: (name: string) => SupabaseRealtimeChannel;
-  removeChannel: (channel: SupabaseRealtimeChannel) => void;
-};
-
-declare global {
-  interface Window {
-    supabase?: {
-      createClient: (
-        url: string,
-        anonKey: string,
-      ) => SupabaseBrowserClient;
-    };
-  }
-}
 
 type AdminRealtimeNotificationsProps = {
   supabaseUrl: string;
@@ -65,14 +34,13 @@ export function AdminRealtimeNotifications({
   supabaseAnonKey,
   restauranteId,
 }: AdminRealtimeNotificationsProps) {
-  const [scriptReady, setScriptReady] = useState(false);
+  const [reconnectAttempt, setReconnectAttempt] = useState(0);
   const [notification, setNotification] =
     useState<NotificationToastState | null>(null);
   const notifiedIdsRef = useRef(new Set<string>());
   const realtimeFilter = restauranteId
     ? `restaurante_id=eq.${restauranteId}`
     : undefined;
-  const canUseRealtime = Boolean(supabaseUrl && supabaseAnonKey && scriptReady);
 
   function notify(notificationData: Omit<NotificationToastState, "id">) {
     setNotification({ id: Date.now(), ...notificationData });
@@ -91,63 +59,113 @@ export function AdminRealtimeNotifications({
   }, []);
 
   useEffect(() => {
-    if (!canUseRealtime || !window.supabase) {
+    if (!supabaseUrl || !supabaseAnonKey) {
       return;
     }
 
-    const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-    const channel = supabase
-      .channel(`admin-global-notifications-${restauranteId ?? "single"}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notificacoes_admin",
-          ...(realtimeFilter ? { filter: realtimeFilter } : {}),
-        },
-        (payload) => {
-          const row = payload.new as AdminNotificationRow &
-            Record<string, unknown>;
-          const notificationId = String(row.id ?? "");
+    let isMounted = true;
+    let channel: SupabaseRealtimeChannel | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
-          if (notificationId && notifiedIdsRef.current.has(notificationId)) {
-            return;
+    async function subscribeToRealtime() {
+      const supabase = await createSupabaseBrowserClient(
+        supabaseUrl,
+        supabaseAnonKey,
+      );
+
+      if (!isMounted) {
+        return;
+      }
+
+      channel = supabase
+        .channel(`admin-global-notifications-${restauranteId ?? "single"}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notificacoes_admin",
+            ...(realtimeFilter ? { filter: realtimeFilter } : {}),
+          },
+          (payload) => {
+            const row = payload.new as AdminNotificationRow &
+              Record<string, unknown>;
+            const notificationId = String(row.id ?? "");
+
+            if (notificationId && notifiedIdsRef.current.has(notificationId)) {
+              return;
+            }
+
+            if (notificationId) {
+              notifiedIdsRef.current.add(notificationId);
+            }
+
+            const tipo = String(row.tipo ?? "");
+            const title = String(row.titulo ?? "Nova notificacao");
+            const message = String(row.mensagem ?? "");
+
+            if (tipo === TIPO_PEDIDO_CRIADO) {
+              playNotificationSound("new-order");
+              notify({ title, message, tone: "info" });
+              return;
+            }
+
+            if (tipo === TIPO_PAGAMENTO_APROVADO) {
+              playNotificationSound("payment-approved");
+              notify({ title, message, tone: "success" });
+            }
+          },
+        )
+        .subscribe((status) => {
+          if (
+            status === "TIMED_OUT" ||
+            status === "CHANNEL_ERROR" ||
+            status === "CLOSED"
+          ) {
+            reconnectTimeout = setTimeout(() => {
+              setReconnectAttempt((attempt) => attempt + 1);
+            }, 1500);
           }
+        });
+    }
 
-          if (notificationId) {
-            notifiedIdsRef.current.add(notificationId);
-          }
+    subscribeToRealtime().catch(() => {
+      if (!isMounted) {
+        return;
+      }
 
-          const tipo = String(row.tipo ?? "");
-          const title = String(row.titulo ?? "Nova notificacao");
-          const message = String(row.mensagem ?? "");
-
-          if (tipo === TIPO_PEDIDO_CRIADO) {
-            playNotificationSound("new-order");
-            notify({ title, message, tone: "info" });
-            return;
-          }
-
-          if (tipo === TIPO_PAGAMENTO_APROVADO) {
-            playNotificationSound("payment-approved");
-            notify({ title, message, tone: "success" });
-          }
-        },
-      )
-      .subscribe();
+      reconnectTimeout = setTimeout(() => {
+        setReconnectAttempt((attempt) => attempt + 1);
+      }, 1500);
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+
+      const activeChannel = channel;
+
+      if (activeChannel) {
+        createSupabaseBrowserClient(supabaseUrl, supabaseAnonKey)
+          .then((supabase) => {
+            supabase.removeChannel(activeChannel);
+          })
+          .catch(() => undefined);
+      }
     };
-  }, [canUseRealtime, realtimeFilter, restauranteId, supabaseAnonKey, supabaseUrl]);
+  }, [
+    realtimeFilter,
+    reconnectAttempt,
+    restauranteId,
+    supabaseAnonKey,
+    supabaseUrl,
+  ]);
 
   return (
     <>
-      <Script
-        src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
-        onLoad={() => setScriptReady(true)}
-      />
       <NotificationToast
         notification={notification}
         onClose={() => setNotification(null)}

@@ -7,12 +7,23 @@ import { DomainError } from "@/lib/core/domain-error";
 import { atualizarStatusPedido } from "@/lib/services";
 import { atualizarStatusPedidoSchema } from "@/lib/validations";
 
+export type AtualizarStatusPedidoState = {
+  ok: boolean;
+  pedidoId?: string;
+  status?: string;
+  pagamentoStatus?: string | null;
+  message?: string;
+};
+
 function getOptionalString(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
   return typeof value === "string" ? value : undefined;
 }
 
-export async function atualizarStatusPedidoAction(formData: FormData) {
+export async function atualizarStatusPedidoAction(
+  _state: AtualizarStatusPedidoState,
+  formData: FormData,
+): Promise<AtualizarStatusPedidoState> {
   await requireAdminSessionOrRedirect();
 
   try {
@@ -22,14 +33,25 @@ export async function atualizarStatusPedidoAction(formData: FormData) {
       motivoCancelamento: getOptionalString(formData, "motivoCancelamento"),
     });
 
-    await atualizarStatusPedido(input);
+    const pedido = await atualizarStatusPedido(input);
     revalidatePath("/admin");
     revalidatePath("/admin/pedidos");
+
+    return {
+      ok: true,
+      pedidoId: pedido.id,
+      status: pedido.status,
+      pagamentoStatus:
+        pedido.status === "CANCELADO" ? "RECUSADO" : pedido.pagamento?.status,
+    };
   } catch (error) {
     if (error instanceof DomainError || error instanceof z.ZodError) {
-      throw error;
+      return { ok: false, message: error.message };
     }
 
-    throw new Error("Nao foi possivel atualizar o status do pedido.");
+    return {
+      ok: false,
+      message: "Nao foi possivel atualizar o status do pedido.",
+    };
   }
 }

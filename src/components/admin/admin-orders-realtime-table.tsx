@@ -1,43 +1,12 @@
 "use client";
 
-import Script from "next/script";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { OrderStatusForm } from "@/components/admin/order-status-form";
-
-type RealtimePayload<T> = {
-  new: T;
-};
-
-type SupabaseRealtimeChannel = {
-  on: (
-    type: "postgres_changes",
-    config: {
-      event: "INSERT" | "UPDATE";
-      schema: "public";
-      table: string;
-      filter?: string;
-    },
-    callback: (payload: RealtimePayload<Record<string, unknown>>) => void,
-  ) => SupabaseRealtimeChannel;
-  subscribe: (callback?: (status: string) => void) => SupabaseRealtimeChannel;
-};
-
-type SupabaseBrowserClient = {
-  channel: (name: string) => SupabaseRealtimeChannel;
-  removeChannel: (channel: SupabaseRealtimeChannel) => void;
-};
-
-declare global {
-  interface Window {
-    supabase?: {
-      createClient: (
-        url: string,
-        anonKey: string,
-      ) => SupabaseBrowserClient;
-    };
-  }
-}
+import {
+  createSupabaseBrowserClient,
+  type SupabaseRealtimeChannel,
+} from "@/lib/supabase/browser-client";
 
 export type PedidoAdminRealtimeItem = {
   id: string;
@@ -227,6 +196,37 @@ function upsertPedido(
   );
 }
 
+function mergePagamentoRealtime(
+  pedido: PedidoAdminRealtimeItem,
+  pagamentoStatus: string,
+) {
+  return {
+    ...pedido,
+    status:
+      pagamentoStatus === "APROVADO" &&
+      pedido.status === "AGUARDANDO_PAGAMENTO"
+        ? "CONFIRMADO"
+        : pedido.status,
+    pagamentoStatus,
+  };
+}
+
+function mergeStatusManual(
+  pedido: PedidoAdminRealtimeItem,
+  status: string,
+  pagamentoStatus?: string | null,
+) {
+  const pagamentoAtualizado =
+    pagamentoStatus ??
+    (statusPagamentoAprovado.has(status) ? "APROVADO" : pedido.pagamentoStatus);
+
+  return {
+    ...pedido,
+    status,
+    pagamentoStatus: pagamentoAtualizado,
+  };
+}
+
 function filtrarPedidos(
   pedidos: PedidoAdminRealtimeItem[],
   filtro: FiltroPedidos,
@@ -262,102 +262,168 @@ export function AdminOrdersRealtimeTable({
 }: AdminOrdersRealtimeTableProps) {
   const [pedidos, setPedidos] = useState(() => sortPedidos(initialPedidos));
   const [filtroAtivo, setFiltroAtivo] = useState<FiltroPedidos>("TODOS");
-  const [realtimeStatus, setRealtimeStatus] = useState("desconectado");
-  const [scriptReady, setScriptReady] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState(() =>
+    supabaseUrl && supabaseAnonKey ? "carregando" : "desconectado",
+  );
+  const [reconnectAttempt, setReconnectAttempt] = useState(0);
   const realtimeFilter = restauranteId
     ? `restaurante_id=eq.${restauranteId}`
     : undefined;
 
-  const canUseRealtime = Boolean(supabaseUrl && supabaseAnonKey && scriptReady);
   const realtimeLabel =
     !supabaseUrl || !supabaseAnonKey
       ? "nao configurado"
-      : !scriptReady
-        ? "carregando"
-        : realtimeStatus;
+      : realtimeStatus;
   const pedidosFiltrados = filtrarPedidos(pedidos, filtroAtivo);
 
+  function handleStatusUpdated(input: {
+    pedidoId: string;
+    status: string;
+    pagamentoStatus?: string | null;
+  }) {
+    setPedidos((pedidosAtuais) =>
+      sortPedidos(
+        pedidosAtuais.map((pedido) =>
+          pedido.id === input.pedidoId
+            ? mergeStatusManual(pedido, input.status, input.pagamentoStatus)
+            : pedido,
+        ),
+      ),
+    );
+  }
+
   useEffect(() => {
-    if (!canUseRealtime || !window.supabase) {
+    if (!supabaseUrl || !supabaseAnonKey) {
       return;
     }
 
-    const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-    const pedidosConfig = {
-      schema: "public" as const,
-      table: "pedidos" as const,
-      ...(realtimeFilter ? { filter: realtimeFilter } : {}),
-    };
-    const channel = supabase
-      .channel(`admin-pedidos-${restauranteId ?? "single"}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", ...pedidosConfig },
-        (payload) => {
-          const pedidoNovo = normalizePedido(payload.new);
-          setPedidos((pedidosAtuais) =>
-            upsertPedido(pedidosAtuais, pedidoNovo),
-          );
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", ...pedidosConfig },
-        (payload) => {
-          setPedidos((pedidosAtuais) =>
-            upsertPedido(pedidosAtuais, normalizePedido(payload.new)),
-          );
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "pagamentos" },
-        (payload) => {
-          const pedidoId = String(payload.new.pedidoId ?? "");
-          const status = String(payload.new.status ?? "PENDENTE");
-          setPedidos((pedidosAtuais) => {
-            return sortPedidos(
-              pedidosAtuais.map((pedido) =>
-                pedido.id === pedidoId
-                  ? { ...pedido, pagamentoStatus: status }
-                  : pedido,
-              ),
+    let isMounted = true;
+    let channel: SupabaseRealtimeChannel | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    async function subscribeToRealtime() {
+      const supabase = await createSupabaseBrowserClient(
+        supabaseUrl,
+        supabaseAnonKey,
+      );
+
+      if (!isMounted) {
+        return;
+      }
+
+      const pedidosConfig = {
+        schema: "public" as const,
+        table: "pedidos" as const,
+        ...(realtimeFilter ? { filter: realtimeFilter } : {}),
+      };
+      channel = supabase
+        .channel(`admin-pedidos-${restauranteId ?? "single"}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", ...pedidosConfig },
+          (payload) => {
+            const pedidoNovo = normalizePedido(payload.new);
+            setPedidos((pedidosAtuais) =>
+              upsertPedido(pedidosAtuais, pedidoNovo),
             );
-          });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "pagamentos" },
-        (payload) => {
-          const pedidoId = String(payload.new.pedidoId ?? "");
-          const status = String(payload.new.status ?? "PENDENTE");
-          setPedidos((pedidosAtuais) => {
-            return sortPedidos(
-              pedidosAtuais.map((pedido) =>
-                pedido.id === pedidoId
-                  ? { ...pedido, pagamentoStatus: status }
-                  : pedido,
-              ),
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", ...pedidosConfig },
+          (payload) => {
+            setPedidos((pedidosAtuais) =>
+              upsertPedido(pedidosAtuais, normalizePedido(payload.new)),
             );
-          });
-        },
-      )
-      .subscribe((status) => {
-        setRealtimeStatus(status);
-      });
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "pagamentos" },
+          (payload) => {
+            const pedidoId = String(payload.new.pedidoId ?? "");
+            const status = String(payload.new.status ?? "PENDENTE");
+            setPedidos((pedidosAtuais) => {
+              return sortPedidos(
+                pedidosAtuais.map((pedido) =>
+                  pedido.id === pedidoId
+                    ? mergePagamentoRealtime(pedido, status)
+                    : pedido,
+                ),
+              );
+            });
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "pagamentos" },
+          (payload) => {
+            const pedidoId = String(payload.new.pedidoId ?? "");
+            const status = String(payload.new.status ?? "PENDENTE");
+            setPedidos((pedidosAtuais) => {
+              return sortPedidos(
+                pedidosAtuais.map((pedido) =>
+                  pedido.id === pedidoId
+                    ? mergePagamentoRealtime(pedido, status)
+                    : pedido,
+                ),
+              );
+            });
+          },
+        )
+        .subscribe((status) => {
+          setRealtimeStatus(status);
+
+          if (
+            status === "TIMED_OUT" ||
+            status === "CHANNEL_ERROR" ||
+            status === "CLOSED"
+          ) {
+            reconnectTimeout = setTimeout(() => {
+              setReconnectAttempt((attempt) => attempt + 1);
+            }, 1500);
+          }
+        });
+    }
+
+    subscribeToRealtime().catch(() => {
+      if (!isMounted) {
+        return;
+      }
+
+      setRealtimeStatus("erro");
+      reconnectTimeout = setTimeout(() => {
+        setReconnectAttempt((attempt) => attempt + 1);
+      }, 1500);
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+
+      const activeChannel = channel;
+
+      if (activeChannel) {
+        createSupabaseBrowserClient(supabaseUrl, supabaseAnonKey)
+          .then((supabase) => {
+            supabase.removeChannel(activeChannel);
+          })
+          .catch(() => undefined);
+      }
     };
-  }, [canUseRealtime, realtimeFilter, restauranteId, supabaseAnonKey, supabaseUrl]);
+  }, [
+    realtimeFilter,
+    reconnectAttempt,
+    restauranteId,
+    supabaseAnonKey,
+    supabaseUrl,
+  ]);
 
   return (
     <>
-      <Script
-        src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
-        onLoad={() => setScriptReady(true)}
-      />
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-zinc-500">
           Realtime: {realtimeLabel}
@@ -444,6 +510,7 @@ export function AdminOrdersRealtimeTable({
                           pedidoId={pedido.id}
                           proximosStatus={proximosStatus}
                           statusLabels={statusLabels}
+                          onStatusUpdated={handleStatusUpdated}
                         />
                       ) : null}
                     </div>

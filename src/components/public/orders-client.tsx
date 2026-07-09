@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   removeStoredOrder,
   useStoredOrders,
@@ -128,42 +128,86 @@ export function OrdersClient() {
     [storedOrders],
   );
   const [pedidos, setPedidos] = useState<PedidoStatus[]>([]);
+  const pedidosRef = useRef<PedidoStatus[]>([]);
 
   useEffect(() => {
     if (codigos.length === 0) {
+      pedidosRef.current = [];
       return;
     }
 
     let isActive = true;
 
-    async function carregarPedidos() {
+    async function buscarPedido(codigoPedido: number, shouldSync: boolean) {
+      const response = await fetch(
+        `/api/pedidos/${codigoPedido}/status${shouldSync ? "?sync=1" : ""}`,
+        { cache: "no-store" },
+      );
+
+      if (!response.ok) {
+        return null;
+      }
+
+      return (await response.json()) as PedidoStatus;
+    }
+
+    function atualizarPedidos(nextPedidos: PedidoStatus[]) {
+      const pedidosOrdenados = sortStatuses(nextPedidos);
+      pedidosRef.current = pedidosOrdenados;
+      setPedidos(pedidosOrdenados);
+    }
+
+    async function carregarPedidosIniciais() {
       const responses = await Promise.all(
-        codigos.map(async (codigoPedido) => {
-          const response = await fetch(
-            `/api/pedidos/${codigoPedido}/status?sync=1`,
-            { cache: "no-store" },
-          );
-
-          if (!response.ok) {
-            return null;
-          }
-
-          return (await response.json()) as PedidoStatus;
-        }),
+        codigos.map((codigoPedido) => buscarPedido(codigoPedido, true)),
       );
 
       if (!isActive) {
         return;
       }
 
-      setPedidos(sortStatuses(responses.filter(Boolean) as PedidoStatus[]));
+      atualizarPedidos(responses.filter(Boolean) as PedidoStatus[]);
     }
 
-    carregarPedidos();
+    async function sincronizarPedidosAtivos() {
+      const pedidosAtivos = pedidosRef.current.filter(
+        (pedido) => !terminalStatuses.has(pedido.status),
+      );
+
+      if (pedidosAtivos.length === 0) {
+        return;
+      }
+
+      const responses = await Promise.all(
+        pedidosAtivos.map((pedido) =>
+          buscarPedido(
+            pedido.codigoPedido,
+            pedido.status === "AGUARDANDO_PAGAMENTO",
+          ),
+        ),
+      );
+
+      if (!isActive) {
+        return;
+      }
+
+      const pedidosAtualizados = responses.filter(Boolean) as PedidoStatus[];
+      const pedidosPorCodigo = new Map(
+        pedidosAtualizados.map((pedido) => [pedido.codigoPedido, pedido]),
+      );
+
+      atualizarPedidos(
+        pedidosRef.current.map(
+          (pedido) => pedidosPorCodigo.get(pedido.codigoPedido) ?? pedido,
+        ),
+      );
+    }
+
+    carregarPedidosIniciais();
 
     const intervalId = window.setInterval(() => {
-      carregarPedidos();
-    }, 4000);
+      sincronizarPedidosAtivos();
+    }, 6000);
 
     return () => {
       isActive = false;
