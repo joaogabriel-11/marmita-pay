@@ -26,6 +26,8 @@
 
 <br/>
 
+<img width="1890" height="916" alt="marmita-pay-sem-endereco" src="https://github.com/user-attachments/assets/6a7d100e-83f0-4c3d-a327-cfebc14d663c" />
+
 _A platform for restaurants to sell daily meals with stock control, Pix checkout and a real-time admin dashboard._
 
 </div>
