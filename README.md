@@ -2,139 +2,135 @@
 
 # Marmita Pay
 
-### Full Stack meal ordering platform with daily menu, stock control and Pix payments
+### Plataforma Full Stack para pedidos de refeições com cardápio diário, controle de estoque e pagamentos via Pix
 
 <br/>
 
-![Next.js](https://img.shields.io/badge/Next.js-black?style=for-the-badge&logo=nextdotjs)
-![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/TailwindCSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-black?style=for-the-badge\&logo=nextdotjs)
+![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge\&logo=react\&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge\&logo=typescript\&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-38B2AC?style=for-the-badge\&logo=tailwind-css\&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge\&logo=prisma\&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge\&logo=supabase\&logoColor=white)
 
 <br/>
 
 <p align="center">
-  <a href="https://marmita-pay.joaogabriels.com">
-    <img src="https://img.shields.io/badge/Live_Demo-000000?style=for-the-badge&logo=vercel&logoColor=white"/>
-  </a>
-  <a href="https://github.com/joaogabriel-11/marmita-pay">
-    <img src="https://img.shields.io/badge/Code-181717?style=for-the-badge&logo=github&logoColor=white"/>
-  </a>
+  <a href="https://marmita-pay.joaogabriels.com"><img src="https://img.shields.io/badge/Live_Demo-000000?style=for-the-badge&logo=vercel&logoColor=white"/></a>
+  <a href="https://github.com/joaogabriel-11/marmita-pay"><img src="https://img.shields.io/badge/Code-181717?style=for-the-badge&logo=github&logoColor=white"/></a>
 </p>
 
 <br/>
 
 <img width="1890" height="916" alt="marmita-pay-sem-endereco" src="https://github.com/user-attachments/assets/6a7d100e-83f0-4c3d-a327-cfebc14d663c" />
 
-_A platform for restaurants to sell daily meals with stock control, Pix checkout and a real-time admin dashboard._
+*Uma plataforma para restaurantes venderem refeições diárias com controle de estoque, checkout via Pix e painel administrativo em tempo real.*
 
 </div>
 
 ---
 
-# About
+# Sobre
 
-**Marmita Pay** is a Full Stack application built with **Next.js App Router** to solve a real restaurant workflow: publish the daily menu, receive orders, reserve stock, generate Pix payments and manage operations through an admin dashboard.
+O **Marmita Pay** é uma aplicação Full Stack desenvolvida com **Next.js App Router** para resolver um fluxo real de restaurante: publicar o cardápio do dia, receber pedidos, reservar estoque, gerar pagamentos via Pix e gerenciar as operações por meio de um painel administrativo.
 
-The project was built with focus on:
+O projeto foi desenvolvido com foco em:
 
-- Clean Code
-- Reusable Components
-- Business rules centralized in services
-- Repository layer for Prisma access
-- Responsive UI for customers and administrators
-- Secure payments through Mercado Pago
-- Real-time updates with Supabase Realtime
-- Simple maintenance and incremental evolution
-
----
-
-# Features
-
-## Public Area
-
-- Daily menu
-- Products with image, description, category and price
-- Local cart
-- Checkout with pickup or delivery
-- ZIP code lookup with ViaCEP
-- Delivery fee calculation by distance
-- Pix copy and paste
-- Pix QR Code
-- Order status page
-- Saved orders page in the browser
-- Live order progress updates
+* Código limpo
+* Componentes reutilizáveis
+* Regras de negócio centralizadas em serviços
+* Camada de repositórios para acesso ao Prisma
+* Interface responsiva para clientes e administradores
+* Pagamentos seguros por meio do Mercado Pago
+* Atualizações em tempo real com Supabase Realtime
+* Manutenção simples e evolução incremental
 
 ---
 
-## Checkout and Payment
+# Funcionalidades
 
-- Server-side price revalidation
-- Configurable minimum order value
-- Stock reservation when Pix is generated
-- Pending order expiration
-- Mercado Pago integration
-- Payment webhook
-- Paid amount validation
-- Automatic paid order confirmation
-- Real-time admin notification
+## Área Pública
 
----
-
-## Admin Dashboard
-
-- Admin login
-- Dashboard with order summary
-- Order management
-- Order status updates
-- Cancellation with reason
-- Real-time updates with Supabase Realtime
-- Visual and sound notifications
-- Create, edit and delete products
-- Image upload with Vercel Blob
-- Daily menu management
-- Permanent menu items
-- Restaurant settings
-- Restaurant address with ZIP code and geolocation
+* Cardápio diário
+* Produtos com imagem, descrição, categoria e preço
+* Carrinho local
+* Checkout com retirada ou entrega
+* Consulta de CEP com ViaCEP
+* Cálculo da taxa de entrega por distância
+* Pix Copia e Cola
+* QR Code Pix
+* Página de status do pedido
+* Página de pedidos salvos no navegador
+* Atualizações em tempo real do andamento do pedido
 
 ---
 
-## Business Rules
+## Checkout e Pagamento
 
-- Customers do not need an account
-- Admin routes and Server Actions are protected
-- Orders start as `AGUARDANDO_PAGAMENTO`
-- Approved payment changes the order to `CONFIRMADO`
-- Canceled pending orders change payment to `RECUSADO`
-- Stock is reduced only after approved payment
-- Pending orders expire on demand
-- Delivery fee and total amount are frozen in the order
-- Order status follows a valid state machine
-
----
-
-# Tech Stack
-
-| Technology | Description |
-| --- | --- |
-| Next.js 16 | Full stack framework with App Router |
-| React 19 | UI Library |
-| TypeScript | Static typing |
-| Tailwind CSS 4 | Styling |
-| Prisma 7 | ORM and database access |
-| PostgreSQL | Relational database |
-| Supabase | Database and Realtime |
-| Mercado Pago | Pix payments and webhook |
-| Vercel Blob | Image upload and storage |
-| Zod | Validations |
-| ESLint | Code quality |
-| Vercel | Deployment |
+* Revalidação de preços no servidor
+* Valor mínimo do pedido configurável
+* Reserva de estoque quando o Pix é gerado
+* Expiração de pedidos pendentes
+* Integração com Mercado Pago
+* Webhook de pagamento
+* Validação do valor pago
+* Confirmação automática de pedidos pagos
+* Notificação em tempo real para o administrador
 
 ---
 
-# Project Structure
+## Painel Administrativo
+
+* Login do administrador
+* Dashboard com resumo dos pedidos
+* Gerenciamento de pedidos
+* Atualização do status dos pedidos
+* Cancelamento com motivo
+* Atualizações em tempo real com Supabase Realtime
+* Notificações visuais e sonoras
+* Criação, edição e exclusão de produtos
+* Upload de imagens com Vercel Blob
+* Gerenciamento do cardápio diário
+* Itens permanentes no cardápio
+* Configurações do restaurante
+* Endereço do restaurante com CEP e geolocalização
+
+---
+
+## Regras de Negócio
+
+* Os clientes não precisam de uma conta
+* As rotas administrativas e Server Actions são protegidas
+* Os pedidos começam como `AGUARDANDO_PAGAMENTO`
+* O pagamento aprovado altera o pedido para `CONFIRMADO`
+* Pedidos pendentes cancelados alteram o pagamento para `RECUSADO`
+* O estoque é reduzido somente após a aprovação do pagamento
+* Pedidos pendentes expiram sob demanda
+* A taxa de entrega e o valor total são congelados no pedido
+* O status do pedido segue uma máquina de estados válida
+
+---
+
+# Tecnologias Utilizadas
+
+| Tecnologia     | Descrição                           |
+| -------------- | ----------------------------------- |
+| Next.js 16     | Framework Full Stack com App Router |
+| React 19       | Biblioteca de interfaces            |
+| TypeScript     | Tipagem estática                    |
+| Tailwind CSS 4 | Estilização                         |
+| Prisma 7       | ORM e acesso ao banco de dados      |
+| PostgreSQL     | Banco de dados relacional           |
+| Supabase       | Banco de dados e Realtime           |
+| Mercado Pago   | Pagamentos via Pix e webhook        |
+| Vercel Blob    | Upload e armazenamento de imagens   |
+| Zod            | Validações                          |
+| ESLint         | Qualidade de código                 |
+| Vercel         | Implantação                         |
+
+---
+
+# Estrutura do Projeto
 
 ```text
 src
@@ -192,45 +188,45 @@ docs
 
 ---
 
-# Getting Started
+# Primeiros Passos
 
-Clone the repository
+Clone o repositório
 
 ```bash
 git clone https://github.com/joaogabriel-11/marmita-pay.git
 ```
 
-Go to the project folder
+Acesse a pasta do projeto
 
 ```bash
 cd marmita-pay
 ```
 
-Install dependencies
+Instale as dependências
 
 ```bash
 npm install
 ```
 
-Configure environment variables
+Configure as variáveis de ambiente
 
 ```bash
 cp .env.example .env.local
 ```
 
-Generate Prisma Client
+Gere o Prisma Client
 
 ```bash
 npx prisma generate
 ```
 
-Run the project
+Execute o projeto
 
 ```bash
 npm run dev
 ```
 
-Open
+Abra
 
 ```text
 http://localhost:3000
@@ -238,7 +234,7 @@ http://localhost:3000
 
 ---
 
-# Environment Variables
+# Variáveis de Ambiente
 
 ```env
 DATABASE_URL=""
@@ -266,55 +262,55 @@ VERCEL_OIDC_TOKEN=""
 
 ---
 
-# Available Scripts
+# Scripts Disponíveis
 
-| Command | Description |
-| --- | --- |
-| `npm run dev` | Starts the development server |
-| `npm run build` | Generates Prisma Client and builds the app |
-| `npm run start` | Starts the production server |
-| `npm run lint` | Runs ESLint |
-| `npm run seed:demo` | Seeds demo data |
+| Comando             | Descrição                                           |
+| ------------------- | --------------------------------------------------- |
+| `npm run dev`       | Inicia o servidor de desenvolvimento                |
+| `npm run build`     | Gera o Prisma Client e realiza o build da aplicação |
+| `npm run start`     | Inicia o servidor de produção                       |
+| `npm run lint`      | Executa o ESLint                                    |
+| `npm run seed:demo` | Insere dados de demonstração                        |
 
 ---
 
-# Main Flows
+# Principais Fluxos
 
-## Pix Order
+## Pedido via Pix
 
 ```text
-Customer selects items
+Cliente seleciona os itens
         |
-Checkout revalidates data on the server
+Checkout revalida os dados no servidor
         |
-System creates Order + pending Payment
+Sistema cria o Pedido + Pagamento pendente
         |
-Mercado Pago generates Pix
+Mercado Pago gera o Pix
         |
-Customer pays
+Cliente realiza o pagamento
         |
-Webhook confirms payment
+Webhook confirma o pagamento
         |
-Order becomes CONFIRMADO
+Pedido se torna CONFIRMADO
         |
-Admin receives a real-time notification
+Administrador recebe uma notificação em tempo real
 ```
 
 ---
 
-## Stock Control
+## Controle de Estoque
 
 ```text
-available stock = quantidadeDisponivel - quantidadeVendida - active reservations
+estoque disponível = quantidadeDisponivel - quantidadeVendida - reservas ativas
 ```
 
-- `quantidadeDisponivel`: current stock set by the admin
-- `quantidadeVendida`: incremented after approved payment
-- active reservations: non-expired orders with `AGUARDANDO_PAGAMENTO` status
+* `quantidadeDisponivel`: estoque atual definido pelo administrador
+* `quantidadeVendida`: incrementada após a aprovação do pagamento
+* reservas ativas: pedidos não expirados com status `AGUARDANDO_PAGAMENTO`
 
 ---
 
-## Order Status
+## Status do Pedido
 
 ```text
 AGUARDANDO_PAGAMENTO
@@ -332,15 +328,15 @@ AGUARDANDO_PAGAMENTO
 
 # Realtime
 
-The admin dashboard uses **Supabase Realtime** to:
+O painel administrativo utiliza o **Supabase Realtime** para:
 
-- receive new orders;
-- update existing orders;
-- update payment status;
-- show created order notifications;
-- show approved payment notifications.
+* receber novos pedidos;
+* atualizar pedidos existentes;
+* atualizar o status dos pagamentos;
+* exibir notificações de pedidos criados;
+* exibir notificações de pagamentos aprovados.
 
-Expected tables in the `supabase_realtime` publication:
+Tabelas esperadas na publicação `supabase_realtime`:
 
 ```text
 pedidos
@@ -350,100 +346,100 @@ notificacoes_admin
 
 ---
 
-# Responsive Design
+# Design Responsivo
 
-The project was designed to provide a good experience on:
+O projeto foi desenvolvido para proporcionar uma boa experiência em:
 
-- Desktop
-- Laptop
-- Tablet
-- Mobile
+* Desktop
+* Notebook
+* Tablet
+* Celular
 
-The public area prioritizes quick mobile ordering. The admin area prioritizes scanning, operating and updating daily orders.
-
----
-
-# Performance and Reliability
-
-- Server Components whenever possible
-- Server Actions for internal mutations
-- Route Handlers for APIs and webhooks
-- Sensitive data revalidation on the server
-- Prisma transactions in critical flows
-- Idempotent webhook processing
-- On-demand pending order expiration
-- Supabase Realtime with the official client
-- Separation between UI, services and repositories
+A área pública prioriza pedidos rápidos pelo celular. A área administrativa prioriza a visualização, o gerenciamento e a atualização dos pedidos diários.
 
 ---
 
-# Screenshots
+# Desempenho e Confiabilidade
 
-Project screenshots will be added as the final screens stabilize.
-
-| Public Area | Admin Dashboard |
-| --- | --- |
-| Coming soon | Coming soon |
-
----
-
-# Roadmap
-
-- More complete reports
-- Dedicated kitchen dashboard
-- Notification improvements
-- Coupons and promotions
-- Optional customer login and history
-- Automatic or semi-automatic WhatsApp integration
-- Card payments
-- Automated tests for critical services
+* Server Components sempre que possível
+* Server Actions para alterações internas
+* Route Handlers para APIs e webhooks
+* Revalidação de dados sensíveis no servidor
+* Transações Prisma em fluxos críticos
+* Processamento idempotente de webhooks
+* Expiração de pedidos pendentes sob demanda
+* Supabase Realtime com o cliente oficial
+* Separação entre interface, serviços e repositórios
 
 ---
 
-# Contributing
+# Capturas de Tela
 
-Contributions are welcome!
+As capturas de tela do projeto serão adicionadas conforme as telas finais forem estabilizadas.
 
-1. Fork the project
+| Área Pública | Painel Administrativo |
+| ------------ | --------------------- |
+| <img width="1919" height="919" alt="marmita-pay joaogabriels com_cardapio (1)" src="https://github.com/user-attachments/assets/082545e6-2ac3-4756-995a-9badacc6808a" /> | <img width="1919" height="919" alt="marmita-pay joaogabriels com_admin" src="https://github.com/user-attachments/assets/84ca9f19-ca80-46c0-895f-49d7535c7291" /> |
 
-2. Create a new branch
+---
+
+# Próximas Implementações
+
+* Relatórios mais completos
+* Painel dedicado para a cozinha
+* Melhorias nas notificações
+* Cupons e promoções
+* Login e histórico opcionais para clientes
+* Integração automática ou semiautomática com WhatsApp
+* Pagamentos com cartão
+* Testes automatizados para serviços críticos
+
+---
+
+# Contribuindo
+
+Contribuições são bem-vindas!
+
+1. Faça um fork do projeto
+
+2. Crie uma nova branch
 
 ```bash
 git checkout -b feature/new-feature
 ```
 
-3. Commit your changes
+3. Faça o commit das suas alterações
 
 ```bash
 git commit -m "feat: add new feature"
 ```
 
-4. Push
+4. Envie as alterações
 
 ```bash
 git push origin feature/new-feature
 ```
 
-5. Open a Pull Request
+5. Abra um Pull Request
 
 ---
 
-# Author
+# Autor
 
 **Joao Gabriel dos Santos**
 
 GitHub
 
-[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/joaogabriel-11)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge\&logo=github\&logoColor=white)](https://github.com/joaogabriel-11)
 
 LinkedIn
 
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/joaogabriel11)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge\&logo=linkedin\&logoColor=white)](https://linkedin.com/in/joaogabriel11)
 
 ---
 
 <div align="center">
 
-### If you liked this project, leave a star on the repository!
+### Se você gostou deste projeto, deixe uma estrela no repositório!
 
 </div>
